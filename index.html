@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NIGHT SHIFT: ICE CREAM — Game horror psikologis 2D berbasis browser. Jaga kios es krim tengah malam, amati pelanggan di balik kaca, dan bertahan hingga fajar.">
+  <title>NIGHT SHIFT: ICE CREAM — Horror Psikologis 2D</title>
+  <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app" class="app-root" aria-label="NIGHT SHIFT: ICE CREAM">
+    <!-- Full-bleed atmospheric 2D Canvas rendered continuously -->
+    <canvas id="game-canvas" aria-label="Tampilan Kios Es Krim Sora Dingin"></canvas>
+
+    <!-- Subtle analog vignette & scan/grain atmospheric layer -->
+    <div id="fx-overlay" class="fx-overlay" aria-hidden="true"></div>
+    <div id="flash-overlay" class="flash-overlay" aria-hidden="true"></div>
+
+    <!-- =================================================================
+         SCREEN 1: MAIN MENU
+         ================================================================= -->
+    <section id="screen-menu" class="screen screen-menu active" aria-labelledby="menu-title">
+      <div class="menu-backdrop-gradient"></div>
+      <div class="menu-container">
+        <header class="menu-header">
+          <p class="menu-location">KIOS SORA DINGIN &middot; JL. MELATI LAMA &middot; 23:00 – 05:00</p>
+          <h1 id="menu-title" class="game-title">
+            <span class="title-top">NIGHT SHIFT</span>
+            <span class="title-sub">ICE CREAM</span>
+          </h1>
+          <p class="menu-tagline">
+            Buka jendela untuk yang lapar. Kunci rapat untuk yang sekadar mengintai.
+          </p>
+        </header>
+
+        <nav class="menu-actions" aria-label="Menu Utama">
+          <button id="btn-continue" class="btn btn-primary btn-menu hidden" type="button">
+            <span class="btn-label">Lanjutkan Shift</span>
+            <span id="continue-meta" class="btn-meta">Malam 1</span>
+          </button>
+          <button id="btn-new-game" class="btn btn-primary btn-menu" type="button">
+            <span class="btn-label">Mulai Baru</span>
+            <span class="btn-meta">New Game</span>
+          </button>
+          <button id="btn-menu-settings" class="btn btn-secondary btn-menu" type="button">
+            <span class="btn-label">Pengaturan</span>
+            <span class="btn-meta">Audio &amp; Tampilan</span>
+          </button>
+          <button id="btn-menu-credits" class="btn btn-ghost btn-menu" type="button">
+            <span class="btn-label">Kredit &amp; Kontrol</span>
+            <span class="btn-meta">Tentang Game</span>
+          </button>
+        </nav>
+
+        <footer class="menu-footer">
+          <div id="menu-endings-tracker" class="endings-tracker" aria-live="polite">
+            <span class="tracker-label">Ending Terbuka:</span>
+            <span id="badge-ending-good" class="ending-dot" title="Good Ending">Fajar</span>
+            <span id="badge-ending-bad" class="ending-dot" title="Bad Ending">Hilang</span>
+            <span id="badge-ending-secret" class="ending-dot" title="Secret Ending">Terungkap</span>
+          </div>
+          <p class="menu-version">v1.0 &middot; Offline HTML5 &middot; Gunakan headphone untuk atmosfer terbaik</p>
+        </footer>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         SCREEN 2: INTRO & INSTRUCTIONS
+         ================================================================= -->
+    <section id="screen-intro" class="screen screen-intro" aria-labelledby="intro-heading">
+      <div class="intro-card">
+        <header class="intro-header">
+          <span class="intro-stamp">BERKAS SHIFT MALAM &middot; SORA DINGIN</span>
+          <h2 id="intro-heading" class="intro-title">Malam Pertama di Jalan Melati</h2>
+        </header>
+
+        <div id="intro-story" class="intro-story">
+          <!-- Populated dynamically by intro step -->
+        </div>
+
+        <div class="intro-guide" aria-label="Panduan Kontrol Dasar">
+          <h3 class="guide-heading">Protokol Kios &amp; Kontrol</h3>
+          <div class="guide-grid">
+            <div class="guide-item">
+              <kbd>Klik Kiri</kbd>
+              <span>Pilih tombol, freezer es krim, telepon, atau klik langsung jendela</span>
+            </div>
+            <div class="guide-item">
+              <kbd>E</kbd>
+              <span>Buka / tutup cepat jendela pelayanan</span>
+            </div>
+            <div class="guide-item">
+              <kbd>Q</kbd> / <kbd>R</kbd>
+              <span>Amati pelanggan lebih dekat / tolak pelayanan</span>
+            </div>
+            <div class="guide-item">
+              <kbd>Space</kbd> / <kbd>Esc</kbd>
+              <span>Lanjutkan dialog / jeda permainan</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="intro-controls">
+          <button id="btn-intro-back" class="btn btn-ghost" type="button">Kembali</button>
+          <div class="intro-step-actions">
+            <button id="btn-intro-skip" class="btn btn-secondary" type="button">Lewati &amp; Mulai</button>
+            <button id="btn-intro-next" class="btn btn-primary" type="button">Lanjut</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         SCREEN 3: GAMEPLAY HUD
+         ================================================================= -->
+    <section id="screen-gameplay" class="screen screen-gameplay" aria-label="Permainan Kios">
+      <!-- TOP BAR -->
+      <header class="hud-top">
+        <div class="hud-group hud-left">
+          <div class="hud-pill hud-shift">
+            <span id="hud-night" class="shift-label">MALAM 1</span>
+            <span id="hud-night-subtitle" class="shift-sub">Shift Pertama</span>
+          </div>
+          <div class="hud-clock-box" aria-label="Jam Digital Shift">
+            <span class="clock-dot" aria-hidden="true"></span>
+            <time id="hud-clock" class="digital-clock">23:00</time>
+            <span id="hud-clock-target" class="clock-target">/ 04:00</span>
+          </div>
+        </div>
+
+        <div class="hud-group hud-center">
+          <div id="hud-window-badge" class="window-badge closed" role="status">
+            <span class="badge-indicator"></span>
+            <span id="hud-window-text">JENDELA TERTUTUP</span>
+          </div>
+          <div id="hud-strikes-pill" class="hud-pill hud-strikes" title="Penolakan pelanggan tidak bersalah akan memicu teguran dari pemilik kios">
+            <span class="meta-key">Teguran Bos</span>
+            <span id="hud-strikes-val" class="meta-val">0 / 3</span>
+          </div>
+        </div>
+
+        <div class="hud-group hud-right">
+          <div class="hud-pill hud-money" aria-label="Total Penjualan">
+            <span class="meta-key">Kas</span>
+            <span id="hud-money" class="money-val">Rp 0</span>
+          </div>
+          <button id="btn-clues" class="btn-hud btn-hud-clues" type="button" title="Buka Catatan Petunjuk (J)">
+            <span>Petunjuk</span>
+            <span id="hud-clue-count" class="clue-badge">0</span>
+          </button>
+          <button id="btn-mute" class="btn-hud btn-icon" type="button" title="Bisukan / Nyalakan Audio" aria-label="Toggle Audio">
+            <span id="mute-icon">♪</span>
+          </button>
+          <button id="btn-pause" class="btn-hud" type="button" title="Jeda Permainan (Esc)">
+            Jeda
+          </button>
+        </div>
+      </header>
+
+      <!-- SUBTLE EVENT / SENSORY NOTIFICATION BANNER -->
+      <div id="event-toast" class="event-toast hidden" role="status" aria-live="polite">
+        <span id="event-toast-icon" class="toast-icon" aria-hidden="true">!</span>
+        <span id="event-toast-text"></span>
+      </div>
+
+      <!-- EMERGENCY INTRUSION DANGER BANNER -->
+      <div id="danger-banner" class="danger-banner hidden" role="alert">
+        <div class="danger-header">
+          <span class="danger-label">ANCAMAN DI JENDELA — SEGERA TUTUP!</span>
+          <span id="danger-timer-text" class="danger-timer">3.0d</span>
+        </div>
+        <div class="danger-bar-track">
+          <div id="danger-bar-fill" class="danger-bar-fill"></div>
+        </div>
+        <button id="btn-emergency-close" class="btn btn-danger-slam" type="button">
+          BANTING TUTUP JENDELA SEKARANG [E]
+        </button>
+      </div>
+
+      <!-- LEFT DIEGETIC COUNTER DOCK: PHONE & LIGHT SWITCH -->
+      <aside class="dock-left" aria-label="Perangkat Kios">
+        <button id="btn-phone" class="device-btn device-phone" type="button" title="Telepon Kios (T)">
+          <span class="device-led" id="phone-led"></span>
+          <span class="device-info">
+            <span class="device-title">Telepon Kios <kbd>T</kbd></span>
+            <span id="phone-status" class="device-sub">Siaga</span>
+          </span>
+        </button>
+
+        <button id="btn-light" class="device-btn device-light" type="button" title="Lampu Teras / Reset Neon (F)">
+          <span class="device-led active" id="light-led"></span>
+          <span class="device-info">
+            <span class="device-title">Lampu Kios <kbd>F</kbd></span>
+            <span id="light-status" class="device-sub">Teras: Nyala</span>
+          </span>
+        </button>
+
+        <div id="queue-progress" class="shift-progress-chip" aria-label="Kemajuan Shift">
+          <span class="progress-label">Pelanggan Shift</span>
+          <span id="hud-customer-progress" class="progress-val">0 / 4</span>
+        </div>
+      </aside>
+
+      <!-- RIGHT DIEGETIC COUNTER DOCK: ORDER SLIP & ICE CREAM FREEZER -->
+      <aside class="dock-right" aria-label="Pesanan dan Freezer Es Krim">
+        <!-- Order Ticket -->
+        <div id="order-panel" class="order-ticket">
+          <div class="ticket-header">
+            <span class="ticket-title">SLIP PESANAN</span>
+            <span id="order-price" class="ticket-price">—</span>
+          </div>
+          <div id="order-body" class="ticket-body">
+            <p class="ticket-empty">Belum ada pesanan aktif.</p>
+          </div>
+          <div id="cup-preview" class="cup-preview hidden">
+            <span class="cup-label">Gelas Saat Ini:</span>
+            <div id="cup-scoops" class="cup-scoops"></div>
+          </div>
+        </div>
+
+        <!-- Freezer Tray -->
+        <div id="freezer-panel" class="freezer-panel locked">
+          <div class="freezer-header">
+            <span class="freezer-title">FREEZER ES KRIM</span>
+            <span id="freezer-lock-hint" class="freezer-hint">Buka jendela dahulu</span>
+          </div>
+          <div class="flavor-grid" role="group" aria-label="Pilihan Rasa Es Krim">
+            <button class="flavor-btn" data-flavor="vanilla" type="button" disabled>
+              <span class="swatch swatch-vanilla"></span>
+              <span class="flavor-name">Vanila</span>
+              <kbd>1</kbd>
+            </button>
+            <button class="flavor-btn" data-flavor="chocolate" type="button" disabled>
+              <span class="swatch swatch-chocolate"></span>
+              <span class="flavor-name">Cokelat</span>
+              <kbd>2</kbd>
+            </button>
+            <button class="flavor-btn" data-flavor="strawberry" type="button" disabled>
+              <span class="swatch swatch-strawberry"></span>
+              <span class="flavor-name">Stroberi</span>
+              <kbd>3</kbd>
+            </button>
+            <button class="flavor-btn" data-flavor="matcha" type="button" disabled>
+              <span class="swatch swatch-matcha"></span>
+              <span class="flavor-name">Matcha</span>
+              <kbd>4</kbd>
+            </button>
+            <button class="flavor-btn" data-flavor="mint" type="button" disabled>
+              <span class="swatch swatch-mint"></span>
+              <span class="flavor-name">Mint</span>
+              <kbd>5</kbd>
+            </button>
+          </div>
+          <div class="freezer-actions">
+            <button id="btn-clear-cup" class="btn btn-ghost btn-sm" type="button" disabled>Kosongkan</button>
+            <button id="btn-serve-order" class="btn btn-serve btn-sm" type="button" disabled>
+              Serahkan <kbd>Enter</kbd>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- BOTTOM CENTER DIALOGUE & CORE DECISION CONSOLE -->
+      <div class="console-bottom">
+        <!-- Observation Submenu (toggled via Amati [Q]) -->
+        <div id="observe-panel" class="observe-panel hidden" role="group" aria-label="Pilihan Observasi">
+          <span class="observe-title">Periksa Detail:</span>
+          <button id="btn-obs-face" class="btn-obs" data-observe="face" type="button">
+            Wajah &amp; Tatapan
+          </button>
+          <button id="btn-obs-clothes" class="btn-obs" data-observe="clothes" type="button">
+            Pakaian &amp; Tangan
+          </button>
+          <button id="btn-obs-probe" class="btn-obs" data-observe="probe" type="button">
+            Tanya / Lampu
+          </button>
+        </div>
+
+        <!-- Dialogue Box -->
+        <div id="dialogue-box" class="dialogue-box" role="region" aria-live="polite">
+          <div class="dialogue-meta">
+            <span id="dialogue-speaker" class="speaker-name">Kios Sora Dingin</span>
+            <span id="dialogue-tag" class="speaker-tag">Shift Malam</span>
+          </div>
+          <p id="dialogue-text" class="dialogue-text">
+            Hujan gerimis menyapu kaca jendela. Tunggu pelanggan pertama datang...
+          </p>
+          <button id="btn-dialogue-next" class="dialogue-next hidden" type="button">
+            Lanjut [Space] &#9656;
+          </button>
+        </div>
+
+        <!-- Core Decision Action Bar -->
+        <div class="action-bar" role="group" aria-label="Kontrol Jendela dan Keputusan">
+          <button id="btn-window" class="btn btn-action btn-window" type="button">
+            <span id="btn-window-label">Buka Jendela</span>
+            <kbd>E</kbd>
+          </button>
+          <button id="btn-observe" class="btn btn-action btn-observe" type="button" disabled>
+            <span>Amati</span>
+            <kbd>Q</kbd>
+          </button>
+          <button id="btn-refuse" class="btn btn-action btn-refuse" type="button" disabled>
+            <span>Tolak</span>
+            <kbd>R</kbd>
+          </button>
+          <button id="btn-confront" class="btn btn-action btn-confront hidden" type="button">
+            <span>Ungkap &amp; Lapor Polisi</span>
+            <kbd>X</kbd>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         SCREEN 4: SHIFT SUMMARY
+         ================================================================= -->
+    <section id="screen-summary" class="screen screen-summary" aria-labelledby="summary-title">
+      <div class="summary-card">
+        <header class="summary-header">
+          <span id="summary-badge" class="summary-stamp">SHIFT SELESAI</span>
+          <h2 id="summary-title" class="summary-title">Malam 1 Berhasil Dilewati</h2>
+          <p id="summary-subtitle" class="summary-subtitle">Fajar mulai mengintip di ujung Jalan Melati.</p>
+        </header>
+
+        <div class="summary-stats">
+          <div class="stat-box">
+            <span class="stat-label">Pelanggan Dilayani</span>
+            <strong id="stat-served" class="stat-value">0</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Ancaman Ditolak</span>
+            <strong id="stat-threats-refused" class="stat-value">0</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Pendapatan Shift</span>
+            <strong id="stat-income" class="stat-value">Rp 0</strong>
+          </div>
+          <div class="stat-box">
+            <span class="stat-label">Total Kas Kios</span>
+            <strong id="stat-total-money" class="stat-value">Rp 0</strong>
+          </div>
+        </div>
+
+        <div class="summary-clues">
+          <h3 class="summary-section-title">Petunjuk yang Ditemukan Malam Ini</h3>
+          <ul id="summary-clue-list" class="clue-list-compact"></ul>
+        </div>
+
+        <blockquote id="summary-note" class="summary-note">
+          Catatan shift disimpan secara otomatis.
+        </blockquote>
+
+        <div class="summary-actions">
+          <button id="btn-summary-menu" class="btn btn-ghost" type="button">Menu Utama</button>
+          <button id="btn-summary-next" class="btn btn-primary" type="button">Lanjut ke Malam Berikutnya</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         SCREEN 5: ENDING SCREEN
+         ================================================================= -->
+    <section id="screen-ending" class="screen screen-ending" aria-labelledby="ending-title">
+      <div id="ending-card" class="ending-card">
+        <span id="ending-type-badge" class="ending-badge">ENDING</span>
+        <h2 id="ending-title" class="ending-title">Fajar di Jalan Melati</h2>
+        <p id="ending-subtitle" class="ending-subtitle"></p>
+
+        <div id="ending-narrative" class="ending-narrative"></div>
+
+        <div class="ending-consequences">
+          <h3>Ringkasan Perjalanan Shift</h3>
+          <ul id="ending-stats-list" class="ending-stats-list"></ul>
+        </div>
+
+        <div class="ending-actions">
+          <button id="btn-ending-retry-night" class="btn btn-secondary hidden" type="button">Ulangi Malam Ini</button>
+          <button id="btn-ending-restart" class="btn btn-primary" type="button">Main Baru (Restart)</button>
+          <button id="btn-ending-menu" class="btn btn-ghost" type="button">Menu Utama</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =================================================================
+         MODALS (SETTINGS, CREDITS, PAUSE, CLUE NOTEBOOK)
+         ================================================================= -->
+    <div id="modal-backdrop" class="modal-backdrop hidden" aria-hidden="true"></div>
+
+    <!-- Settings Modal -->
+    <dialog id="modal-settings" class="modal-dialog" aria-labelledby="settings-heading">
+      <div class="modal-header">
+        <h2 id="settings-heading">Pengaturan</h2>
+        <button class="modal-close" data-close-modal="modal-settings" type="button" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="setting-row">
+          <label for="setting-master-vol">Volume Utama <span id="val-master-vol">80%</span></label>
+          <input id="setting-master-vol" type="range" min="0" max="100" value="80">
+        </div>
+        <div class="setting-row">
+          <label for="setting-ambience-vol">Volume Ambience (Hujan &amp; Kios) <span id="val-ambience-vol">70%</span></label>
+          <input id="setting-ambience-vol" type="range" min="0" max="100" value="70">
+        </div>
+        <div class="setting-row">
+          <label for="setting-sfx-vol">Volume Efek Suara <span id="val-sfx-vol">85%</span></label>
+          <input id="setting-sfx-vol" type="range" min="0" max="100" value="85">
+        </div>
+        <div class="setting-row setting-toggle">
+          <label for="setting-mute">Bisukan Semua Suara (Mute)</label>
+          <input id="setting-mute" type="checkbox">
+        </div>
+        <div class="setting-row setting-toggle">
+          <label for="setting-reduced-flash">Kurangi Kedipan Lampu Ekstrem (Ramah Mata)</label>
+          <input id="setting-reduced-flash" type="checkbox">
+        </div>
+        <div class="setting-row">
+          <label for="setting-text-speed">Kecepatan Teks Dialog</label>
+          <select id="setting-text-speed">
+            <option value="slow">Lambat (Atmosferis)</option>
+            <option value="normal" selected>Normal</option>
+            <option value="fast">Cepat / Instan</option>
+          </select>
+        </div>
+        <hr class="modal-divider">
+        <div class="setting-danger-zone">
+          <div>
+            <strong>Hapus Data Simpan</strong>
+            <p class="setting-hint">Menghapus progres malam dan catatan petunjuk tersimpan di browser ini.</p>
+          </div>
+          <button id="btn-reset-save" class="btn btn-danger-outline btn-sm" type="button">Reset Progres</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close-modal="modal-settings" type="button">Simpan &amp; Tutup</button>
+      </div>
+    </dialog>
+
+    <!-- Credits & Controls Modal -->
+    <dialog id="modal-credits" class="modal-dialog" aria-labelledby="credits-heading">
+      <div class="modal-header">
+        <h2 id="credits-heading">Kredit &amp; Panduan</h2>
+        <button class="modal-close" data-close-modal="modal-credits" type="button" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body credits-body">
+        <h3>NIGHT SHIFT: ICE CREAM</h3>
+        <p>Game horror psikologis 2D berbasis browser tentang simulasi jaga kios tengah malam, observasi detail, dan ketegangan mengambil keputusan di balik kaca.</p>
+
+        <h4>Kontrol Lengkap</h4>
+        <ul class="controls-list">
+          <li><strong>Klik Kiri</strong> — Semua tombol UI, jendela kios, telepon merah, saklar lampu, &amp; freezer</li>
+          <li><strong>E</strong> — Buka / tutup jendela pelayanan (termasuk banting tutup darurat!)</li>
+          <li><strong>Q</strong> — Buka / tutup menu observasi pelanggan</li>
+          <li><strong>R</strong> — Tolak pelayanan pelanggan</li>
+          <li><strong>T</strong> — Angkat telepon kios saat berdering</li>
+          <li><strong>F</strong> — Nyalakan / matikan lampu teras &amp; reset neon berkedip</li>
+          <li><strong>1 – 5</strong> — Ambil varian es krim (Vanila, Cokelat, Stroberi, Matcha, Mint)</li>
+          <li><strong>Enter</strong> — Serahkan pesanan es krim</li>
+          <li><strong>J</strong> — Buka buku catatan petunjuk</li>
+          <li><strong>Space</strong> — Lanjutkan / percepat teks dialog</li>
+          <li><strong>Esc</strong> — Jeda permainan / tutup panel</li>
+        </ul>
+
+        <h4>Teknologi</h4>
+        <p class="credits-tech">HTML5 &middot; Vanilla CSS3 &middot; Vanilla JavaScript &middot; HTML5 Canvas 2D &middot; Web Audio API (Procedural) &middot; localStorage (100% Offline)</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" data-close-modal="modal-credits" type="button">Tutup</button>
+      </div>
+    </dialog>
+
+    <!-- Pause Modal -->
+    <dialog id="modal-pause" class="modal-dialog modal-sm" aria-labelledby="pause-heading">
+      <div class="modal-header">
+        <h2 id="pause-heading">Permainan Dijeda</h2>
+        <button id="btn-resume-x" class="modal-close" type="button" aria-label="Lanjutkan">&times;</button>
+      </div>
+      <div class="modal-body pause-actions">
+        <button id="btn-pause-resume" class="btn btn-primary" type="button">Lanjutkan Shift [Esc]</button>
+        <button id="btn-pause-settings" class="btn btn-secondary" type="button">Pengaturan</button>
+        <button id="btn-pause-restart-night" class="btn btn-secondary" type="button">Ulangi Malam Ini</button>
+        <button id="btn-pause-restart-game" class="btn btn-ghost" type="button">Mulai Baru dari Malam 1</button>
+        <button id="btn-pause-menu" class="btn btn-danger-outline" type="button">Kembali ke Menu Utama</button>
+      </div>
+    </dialog>
+
+    <!-- Clue Notebook Modal -->
+    <dialog id="modal-clues" class="modal-dialog modal-notebook" aria-labelledby="clues-heading">
+      <div class="modal-header">
+        <h2 id="clues-heading">Catatan Shift &amp; Petunjuk</h2>
+        <button class="modal-close" data-close-modal="modal-clues" type="button" aria-label="Tutup">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="notebook-intro">
+          Kumpulan kejanggalan dan informasi yang kamu temukan selama jaga malam. Hubungkan setiap detail untuk membedakan pelanggan biasa dari ancaman sebenarnya.
+        </p>
+        <div id="clues-list" class="clues-list">
+          <p class="clues-empty">Belum ada petunjuk yang tercatat. Amati pelanggan dan jawab telepon kios.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span id="clues-counter-footer" class="clues-counter-footer">0 petunjuk tercatat</span>
+        <button class="btn btn-primary" data-close-modal="modal-clues" type="button">Tutup Catatan [J]</button>
+      </div>
+    </dialog>
+  </main>
+
+  <!-- Classic sequential scripts (100% file:// and offline compatible, zero CORS issues) -->
+  <script src="js/save.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/dialogue.js"></script>
+  <script src="js/customers.js"></script>
+  <script src="js/events.js"></script>
+  <script src="js/renderer.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
