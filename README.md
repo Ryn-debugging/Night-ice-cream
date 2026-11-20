@@ -24,13 +24,24 @@ Kamu berperan sebagai **Raka**, penjaga shift malam (`23:00 – 05:00`) di **Kio
 
 ## Cara Menjalankan
 
-1. **Langsung di Browser (Tanpa Server):**
-   Buka file `index.html` langsung di browser desktop modern (Chrome, Edge, Firefox, atau Safari).
-2. **Melalui Local HTTP Server (Opsional):**
-   ```bash
-   python3 -m http.server 8000
-   ```
-   Lalu buka `http://localhost:8000`.
+### 1. Versi Android (APK)
+- File APK siap pasang tersedia di [`dist/NightShiftIceCream-v1.0.apk`](dist/NightShiftIceCream-v1.0.apk).
+- Salin file `.apk` ke HP Android (Android 7.0 / API 24 ke atas), ketuk file untuk memasang, lalu aktifkan izin **Install dari sumber tidak dikenal / Unknown Sources** jika diminta.
+- **Fitur Native Android:**
+  - Layar penuh lanskap (*immersive sticky fullscreen*), mendukung layar *notch/punch-hole*.
+  - 100% offline tanpa izin berbahaya (*zero permissions*), progres tersimpan otomatis (`localStorage`).
+  - Layout sentuh khusus layar ponsel lanskap + tombol **Back** native untuk jeda/keluar.
+  - Audio otomatis jeda saat aplikasi berpindah ke latar belakang.
+- **Build Ulang APK:** Jalankan `./scripts/build-apk.sh` (memerlukan JDK 17 + Android SDK Build Tools 34) atau buka folder `android/` di Android Studio.
+
+### 2. Langsung di Browser Desktop (Tanpa Server)
+Buka file `index.html` langsung di browser desktop modern (Chrome, Edge, Firefox, atau Safari).
+
+### 3. Melalui Local HTTP Server (Opsional)
+```bash
+python3 -m http.server 8000
+```
+Lalu buka `http://localhost:8000`.
 
 ---
 

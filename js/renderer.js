@@ -112,30 +112,35 @@
     _computeLayout() {
       const w = this.width;
       const h = this.height;
+      const compactMobile = h <= 540;
 
       // Central service window clearly framed between HUD top and bottom console
-      const winW = Math.min(w * 0.5, 680);
-      const winH = Math.min(h * 0.51, 410);
-      const winX = (w - winW) * 0.5;
-      const winY = Math.max(66, h * 0.125);
+      const winW = compactMobile
+        ? Math.max(220, Math.min(w * 0.46, w - 356))
+        : Math.min(w * 0.5, 680);
+      const winH = compactMobile
+        ? Math.max(140, Math.min(h * 0.49, h - 182))
+        : Math.min(h * 0.51, 410);
+      const winX = compactMobile ? (w - winW) * 0.5 - 16 : (w - winW) * 0.5;
+      const winY = compactMobile ? Math.max(46, h * 0.118) : Math.max(66, h * 0.125);
 
       this.hitboxes.window = { x: winX, y: winY, w: winW, h: winH };
 
       // Counter top begins just beneath the window frame
-      this.counterY = winY + winH + 18;
+      this.counterY = winY + winH + (compactMobile ? 10 : 18);
 
       // Left wall light switch (between left edge & window)
-      const swW = 34;
-      const swH = 52;
-      const swX = Math.max(24, winX - Math.min(110, winX * 0.45));
-      const swY = winY + winH * 0.45;
+      const swW = compactMobile ? 28 : 34;
+      const swH = compactMobile ? 42 : 52;
+      const swX = Math.max(16, winX - Math.min(compactMobile ? 64 : 110, winX * 0.45));
+      const swY = winY + winH * 0.42;
       this.hitboxes.lightSwitch = { x: swX, y: swY, w: swW, h: swH };
 
       // Red desk phone resting on left side of counter
-      const phW = 86;
-      const phH = 58;
-      const phX = Math.max(24, winX - 110);
-      const phY = this.counterY - 12;
+      const phW = compactMobile ? 64 : 86;
+      const phH = compactMobile ? 44 : 58;
+      const phX = Math.max(16, winX - (compactMobile ? 74 : 110));
+      const phY = this.counterY - (compactMobile ? 8 : 12);
       this.hitboxes.phone = { x: phX, y: phY, w: phW, h: phH };
     }
 
@@ -1352,7 +1357,7 @@
       const light = this.state.interiorLightLevel;
       const fx = win.x + win.w * 0.2;
       const fw = win.w * 0.6;
-      const fy = Math.max(58, win.y - 16);
+      const fy = this.height <= 540 ? Math.max(41, win.y - 9) : Math.max(58, win.y - 16);
 
       ctx.save();
       // Fixture housing

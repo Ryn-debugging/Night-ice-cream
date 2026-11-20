@@ -1,0 +1,42 @@
+name: Build Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - 'index.html'
+      - 'css/**'
+      - 'js/**'
+      - 'assets/**'
+      - 'android/**'
+      - 'scripts/build-apk.sh'
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build & sign Android APK
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+          BUILD_TOOLS: ${{ env.ANDROID_SDK_ROOT }}/build-tools/34.0.0
+          PLATFORM_JAR: ${{ env.ANDROID_SDK_ROOT }}/platforms/android-34/android.jar
+        run: |
+          chmod +x scripts/build-apk.sh
+          ./scripts/build-apk.sh
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NightShiftIceCream-v1.0-apk
+          path: dist/NightShiftIceCream-v1.0.apk
+          retention-days: 90

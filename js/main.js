@@ -646,8 +646,51 @@
       }
     });
 
-    // Resize listener
+    // Android native WebView lifecycle & back-button hooks
+    NS.handleAndroidBack = function () {
+      if (activeModalId === 'modal-pause') {
+        game.setPaused(false);
+        return true;
+      }
+      if (activeModalId) {
+        const prev = activeModalId;
+        closeAllModals();
+        if (prev === 'modal-settings' && game.screen === 'gameplay' && game.paused) {
+          openModal('modal-pause');
+        }
+        return true;
+      }
+      if (game.screen === 'gameplay') {
+        game.setPaused(true);
+        return true;
+      }
+      if (game.screen === 'intro' || game.screen === 'summary') {
+        game.showMenu();
+        return true;
+      }
+      return false; // On Main Menu -> allow Android to exit app cleanly
+    };
+
+    NS.onAppPause = function () {
+      NS.Audio.suspend();
+      if (game.screen === 'gameplay' && !game.paused) {
+        game.setPaused(true);
+      }
+    };
+
+    NS.onAppResume = function () {
+      NS.Audio.resume();
+      renderer.resize();
+    };
+
+    // Unlock Web Audio cleanly on first touch on Android
+    document.addEventListener('touchstart', () => NS.Audio.unlock(), { once: true, passive: true });
+
+    // Resize & orientation change listeners
     global.addEventListener('resize', () => renderer.resize());
+    global.addEventListener('orientationchange', () => {
+      global.setTimeout(() => renderer.resize(), 180);
+    });
 
     // Initial render & boot to Main Menu
     uiHooks.syncSettingsUI(game.settings);

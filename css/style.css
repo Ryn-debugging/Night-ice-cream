@@ -2095,3 +2095,367 @@ select:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* ==========================================================================
+   ANDROID TOUCH & MOBILE LANDSCAPE LAYOUT (e.g. 800x360, 844x390, 915x412)
+   ========================================================================== */
+
+button,
+.dialogue-box,
+#game-canvas {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  kbd {
+    display: none !important;
+  }
+}
+
+@media (max-height: 560px) {
+  /* Main Menu compact landscape */
+  .screen-menu {
+    padding: 16px max(24px, env(safe-area-inset-left));
+  }
+
+  .menu-container {
+    width: min(390px, 60vw);
+    gap: 14px;
+  }
+
+  .menu-location {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .title-top {
+    font-size: clamp(28px, 4.4vw, 38px);
+  }
+
+  .title-sub {
+    font-size: clamp(20px, 3vw, 28px);
+    margin-top: 2px;
+  }
+
+  .menu-tagline {
+    font-size: 12.5px;
+    margin-top: 4px;
+  }
+
+  .menu-actions {
+    gap: 6px;
+  }
+
+  .btn-menu {
+    padding: 9px 14px;
+  }
+
+  .btn-menu .btn-label {
+    font-size: 13.5px;
+  }
+
+  .menu-footer {
+    gap: 6px;
+    padding-top: 8px;
+  }
+
+  /* Slim Top HUD Bar */
+  .hud-top {
+    height: 42px;
+    padding: 4px max(10px, env(safe-area-inset-right)) 4px max(10px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+
+  .hud-group {
+    gap: 6px;
+  }
+
+  .hud-pill,
+  .hud-clock-box,
+  .window-badge,
+  .btn-hud {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+
+  .btn-icon {
+    width: 30px;
+    padding: 0;
+  }
+
+  .shift-sub,
+  .hud-strikes .meta-key,
+  .hud-money .meta-key {
+    display: none;
+  }
+
+  .digital-clock {
+    font-size: 13.5px;
+  }
+
+  .clock-target {
+    font-size: 10px;
+  }
+
+  .event-toast {
+    top: 46px;
+    padding: 5px 12px;
+    font-size: 11.5px;
+  }
+
+  .danger-banner {
+    top: 46px;
+    width: min(370px, 84vw);
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .btn-danger-slam {
+    padding: 8px 10px;
+    font-size: 12.5px;
+  }
+
+  /* Compact Left Dock */
+  .dock-left {
+    left: max(8px, env(safe-area-inset-left));
+    bottom: 8px;
+    width: 146px;
+    gap: 6px;
+  }
+
+  .device-btn {
+    padding: 7px 9px;
+    gap: 8px;
+  }
+
+  .device-title {
+    font-size: 11.5px;
+  }
+
+  .device-sub {
+    font-size: 10px;
+  }
+
+  .shift-progress-chip {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  /* Compact Right Dock with 2-Column Flavor Grid */
+  .dock-right {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: 8px;
+    width: 204px;
+    gap: 6px;
+  }
+
+  .order-ticket {
+    padding: 7px 9px;
+    border-top-width: 3px;
+  }
+
+  .ticket-header {
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+  }
+
+  .ticket-title,
+  .ticket-price {
+    font-size: 10px;
+  }
+
+  .ticket-body {
+    font-size: 11.5px;
+    min-height: 22px;
+  }
+
+  .cup-preview {
+    margin-top: 5px;
+    padding-top: 4px;
+    gap: 3px;
+  }
+
+  .cup-label {
+    font-size: 9.5px;
+  }
+
+  .cup-scoop-chip {
+    font-size: 10.5px;
+    padding: 1px 5px;
+  }
+
+  .freezer-panel {
+    padding: 7px 8px;
+    gap: 6px;
+  }
+
+  .freezer-title {
+    font-size: 10px;
+  }
+
+  .freezer-hint {
+    font-size: 9.5px;
+  }
+
+  .flavor-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+  }
+
+  .flavor-btn {
+    padding: 6px 6px;
+    gap: 5px;
+    font-size: 11.5px;
+  }
+
+  .flavor-btn:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .swatch {
+    width: 11px;
+    height: 11px;
+  }
+
+  .freezer-actions .btn {
+    padding: 6px 5px;
+    font-size: 11px;
+  }
+
+  /* Compact Bottom Center Console */
+  .console-bottom {
+    left: calc(50% - 26px);
+    bottom: 8px;
+    width: min(460px, calc(100vw - 384px));
+    min-width: 260px;
+    gap: 5px;
+  }
+
+  .observe-panel {
+    padding: 5px 7px;
+    gap: 4px;
+  }
+
+  .observe-title {
+    display: none;
+  }
+
+  .btn-obs {
+    padding: 6px 5px;
+    font-size: 11px;
+  }
+
+  .dialogue-box {
+    padding: 8px 11px 10px;
+    min-height: 66px;
+  }
+
+  .dialogue-meta {
+    margin-bottom: 3px;
+  }
+
+  .speaker-name {
+    font-size: 12.5px;
+  }
+
+  .speaker-tag {
+    font-size: 9.5px;
+    padding: 1px 5px;
+  }
+
+  .dialogue-text {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .dialogue-next {
+    font-size: 10px;
+    bottom: 5px;
+    right: 8px;
+  }
+
+  .action-bar {
+    gap: 5px;
+  }
+
+  .btn-action {
+    padding: 8px 6px;
+    font-size: 11.5px;
+  }
+
+  /* Compact Intro, Summary, Ending & Modals */
+  .screen-intro,
+  .screen-summary,
+  .screen-ending {
+    padding: 10px;
+  }
+
+  .intro-card,
+  .summary-card,
+  .ending-card {
+    padding: 14px 18px;
+    gap: 10px;
+    max-height: 96vh;
+  }
+
+  .intro-title,
+  .summary-title,
+  .ending-title {
+    font-size: 20px;
+  }
+
+  .intro-story,
+  .ending-narrative {
+    padding: 10px 12px;
+    gap: 6px;
+    min-height: 0;
+  }
+
+  .intro-story p,
+  .ending-narrative p {
+    font-size: 12.5px;
+    line-height: 1.45;
+  }
+
+  .intro-guide {
+    padding: 8px 10px;
+  }
+
+  .guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 12px;
+  }
+
+  .guide-item {
+    font-size: 11.5px;
+  }
+
+  .stat-box {
+    padding: 7px 10px;
+  }
+
+  .stat-value {
+    font-size: 15px;
+  }
+
+  .modal-dialog {
+    max-height: 94vh;
+  }
+
+  .modal-header {
+    padding: 10px 14px;
+  }
+
+  .modal-body {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .modal-footer {
+    padding: 8px 14px;
+  }
+}
+

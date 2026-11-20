@@ -77,6 +77,18 @@
       }
     }
 
+    suspend() {
+      if (this.ctx && this.ctx.state === 'running') {
+        this.ctx.suspend().catch(() => {});
+      }
+    }
+
+    resume() {
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    }
+
     applySettings(settings) {
       if (!settings) return;
       this.settings = Object.assign({}, this.settings, settings);

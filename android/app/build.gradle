@@ -1,0 +1,45 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.ryndebugging.nightshifticecream'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.ryndebugging.nightshifticecream'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '1.0.0'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/assets']
+        }
+    }
+}
+
+tasks.register('syncWebAssets', Copy) {
+    from('../../..') {
+        include 'index.html'
+        include 'css/**'
+        include 'js/**'
+        include 'assets/**'
+    }
+    into 'src/main/assets/www'
+}
+
+preBuild.dependsOn(syncWebAssets)

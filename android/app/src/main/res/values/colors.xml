@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_void">#06090C</color>
+    <color name="crimson_accent">#CF3D34</color>
+    <color name="amber_accent">#D99C4A</color>
+</resources>
