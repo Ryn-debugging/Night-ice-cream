@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#06090c">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="description" content="NIGHT SHIFT: ICE CREAM — Game horror psikologis 2D berbasis browser. Jaga kios es krim tengah malam, amati pelanggan di balik kaca, dan bertahan hingga fajar.">
-  <title>NIGHT SHIFT: ICE CREAM — Horror Psikologis 2D</title>
+  <meta name="description" content="NIGHT SHIFT: ICE CREAM v2.0.0 — Game horror psikologis 2D 10 malam. Jaga kios es krim tengah malam, pantau CCTV Halte, jaga ketenangan, dan bertahan hingga fajar.">
+  <title>NIGHT SHIFT: ICE CREAM v2.0.0 — 10 Malam Horror Psikologis</title>
   <link rel="icon" type="image/svg+xml" href="assets/images/favicon.svg">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -26,24 +26,24 @@
       <div class="menu-backdrop-gradient"></div>
       <div class="menu-container">
         <header class="menu-header">
-          <p class="menu-location">KIOS SORA DINGIN &middot; JL. MELATI LAMA &middot; 23:00 – 05:00</p>
+          <p class="menu-location">KIOS SORA DINGIN &middot; JL. MELATI LAMA &middot; 10 MALAM &middot; 23:00 – 05:00</p>
           <h1 id="menu-title" class="game-title">
             <span class="title-top">NIGHT SHIFT</span>
             <span class="title-sub">ICE CREAM</span>
           </h1>
           <p class="menu-tagline">
-            Buka jendela untuk yang lapar. Kunci rapat untuk yang sekadar mengintai.
+            Buka jendela untuk yang lapar. Kunci ganda untuk yang sekadar mengintai.
           </p>
         </header>
 
         <nav class="menu-actions" aria-label="Menu Utama">
           <button id="btn-continue" class="btn btn-primary btn-menu hidden" type="button">
             <span class="btn-label">Lanjutkan Shift</span>
-            <span id="continue-meta" class="btn-meta">Malam 1</span>
+            <span id="continue-meta" class="btn-meta">Malam 1 / 10</span>
           </button>
           <button id="btn-new-game" class="btn btn-primary btn-menu" type="button">
             <span class="btn-label">Mulai Baru</span>
-            <span class="btn-meta">New Game</span>
+            <span class="btn-meta">10 Malam · New Game</span>
           </button>
           <button id="btn-menu-settings" class="btn btn-secondary btn-menu" type="button">
             <span class="btn-label">Pengaturan</span>
@@ -51,7 +51,7 @@
           </button>
           <button id="btn-menu-credits" class="btn btn-ghost btn-menu" type="button">
             <span class="btn-label">Kredit &amp; Kontrol</span>
-            <span class="btn-meta">Tentang Game</span>
+            <span class="btn-meta">Panduan v2.0</span>
           </button>
         </nav>
 
@@ -62,7 +62,7 @@
             <span id="badge-ending-bad" class="ending-dot" title="Bad Ending">Hilang</span>
             <span id="badge-ending-secret" class="ending-dot" title="Secret Ending">Terungkap</span>
           </div>
-          <p class="menu-version">v1.0 &middot; Offline HTML5 &middot; Gunakan headphone untuk atmosfer terbaik</p>
+          <p class="menu-version">v2.0.0 &middot; 10 Malam &middot; Offline HTML5 &amp; Android</p>
         </footer>
       </div>
     </section>
@@ -73,32 +73,30 @@
     <section id="screen-intro" class="screen screen-intro" aria-labelledby="intro-heading">
       <div class="intro-card">
         <header class="intro-header">
-          <span class="intro-stamp">BERKAS SHIFT MALAM &middot; SORA DINGIN</span>
-          <h2 id="intro-heading" class="intro-title">Malam Pertama di Jalan Melati</h2>
+          <span class="intro-stamp">KONTRAK 10 SHIFT MALAM &middot; SORA DINGIN v2.0</span>
+          <h2 id="intro-heading" class="intro-title">Sepuluh Malam di Jalan Melati</h2>
         </header>
 
-        <div id="intro-story" class="intro-story">
-          <!-- Populated dynamically by intro step -->
-        </div>
+        <div id="intro-story" class="intro-story"></div>
 
         <div class="intro-guide" aria-label="Panduan Kontrol Dasar">
           <h3 class="guide-heading">Protokol Kios &amp; Kontrol</h3>
           <div class="guide-grid">
             <div class="guide-item">
-              <kbd>Klik Kiri</kbd>
-              <span>Pilih tombol, freezer es krim, telepon, atau klik langsung jendela</span>
+              <kbd>E</kbd> / <kbd>L</kbd>
+              <span>Buka/tutup jendela &amp; aktifkan Kunci Ganda anti-congkel</span>
             </div>
             <div class="guide-item">
-              <kbd>E</kbd>
-              <span>Buka / tutup cepat jendela pelayanan</span>
+              <kbd>Q</kbd> / <kbd>V</kbd>
+              <span>Amati pelanggan dekat / pantau CCTV Halte</span>
             </div>
             <div class="guide-item">
-              <kbd>Q</kbd> / <kbd>R</kbd>
-              <span>Amati pelanggan lebih dekat / tolak pelayanan</span>
+              <kbd>C</kbd> / <kbd>F</kbd>
+              <span>Minum Kopi Hangat (+Ketenangan) / Lampu Kios</span>
             </div>
             <div class="guide-item">
-              <kbd>Space</kbd> / <kbd>Esc</kbd>
-              <span>Lanjutkan dialog / jeda permainan</span>
+              <kbd>1–5</kbd> / <kbd>6–8</kbd>
+              <span>Pilih 5 rasa es krim &amp; 3 topping (mulai Malam 3)</span>
             </div>
           </div>
         </div>
@@ -121,7 +119,7 @@
       <header class="hud-top">
         <div class="hud-group hud-left">
           <div class="hud-pill hud-shift">
-            <span id="hud-night" class="shift-label">MALAM 1</span>
+            <span id="hud-night" class="shift-label">MALAM 1/10</span>
             <span id="hud-night-subtitle" class="shift-sub">Shift Pertama</span>
           </div>
           <div class="hud-clock-box" aria-label="Jam Digital Shift">
@@ -136,8 +134,15 @@
             <span class="badge-indicator"></span>
             <span id="hud-window-text">JENDELA TERTUTUP</span>
           </div>
+          <div id="hud-sanity-pill" class="hud-pill hud-sanity" title="Ketenangan mental Raka — minum Kopi Hangat [C] bila mulai menurun">
+            <span class="meta-key">Tenang</span>
+            <div class="sanity-track" aria-hidden="true">
+              <div id="hud-sanity-bar" class="sanity-fill" style="width: 100%"></div>
+            </div>
+            <span id="hud-sanity-val" class="meta-val">100%</span>
+          </div>
           <div id="hud-strikes-pill" class="hud-pill hud-strikes" title="Penolakan pelanggan tidak bersalah akan memicu teguran dari pemilik kios">
-            <span class="meta-key">Teguran Bos</span>
+            <span class="meta-key">Teguran</span>
             <span id="hud-strikes-val" class="meta-val">0 / 3</span>
           </div>
         </div>
@@ -180,12 +185,12 @@
         </button>
       </div>
 
-      <!-- LEFT DIEGETIC COUNTER DOCK: PHONE & LIGHT SWITCH -->
+      <!-- LEFT DIEGETIC COUNTER DOCK: PHONE, LIGHT, CCTV, DEADBOLT & COFFEE -->
       <aside class="dock-left" aria-label="Perangkat Kios">
         <button id="btn-phone" class="device-btn device-phone" type="button" title="Telepon Kios (T)">
           <span class="device-led" id="phone-led"></span>
           <span class="device-info">
-            <span class="device-title">Telepon Kios <kbd>T</kbd></span>
+            <span class="device-title">Telepon <kbd>T</kbd></span>
             <span id="phone-status" class="device-sub">Siaga</span>
           </span>
         </button>
@@ -193,13 +198,32 @@
         <button id="btn-light" class="device-btn device-light" type="button" title="Lampu Teras / Reset Neon (F)">
           <span class="device-led active" id="light-led"></span>
           <span class="device-info">
-            <span class="device-title">Lampu Kios <kbd>F</kbd></span>
+            <span class="device-title">Lampu <kbd>F</kbd></span>
             <span id="light-status" class="device-sub">Teras: Nyala</span>
           </span>
         </button>
 
+        <div class="tactical-row">
+          <button id="btn-cctv" class="device-mini" type="button" title="Pantau CCTV Halte (V)">
+            <span class="mini-title">CCTV <kbd>V</kbd></span>
+            <span id="cctv-status" class="mini-sub">Halte</span>
+          </button>
+          <button id="btn-deadbolt" class="device-mini" type="button" title="Kunci Ganda Jendela (L)">
+            <span class="mini-title">Kunci <kbd>L</kbd></span>
+            <span id="deadbolt-status" class="mini-sub">Lepas</span>
+          </button>
+        </div>
+
+        <button id="btn-coffee" class="device-btn device-coffee" type="button" title="Minum Kopi Hangat (+32% Ketenangan) (C)">
+          <span class="device-led active" id="coffee-led"></span>
+          <span class="device-info">
+            <span class="device-title">Kopi Hangat <kbd>C</kbd></span>
+            <span id="coffee-status" class="device-sub">Rp 25k · +32%</span>
+          </span>
+        </button>
+
         <div id="queue-progress" class="shift-progress-chip" aria-label="Kemajuan Shift">
-          <span class="progress-label">Pelanggan Shift</span>
+          <span class="progress-label">Pelanggan</span>
           <span id="hud-customer-progress" class="progress-val">0 / 4</span>
         </div>
       </aside>
@@ -254,6 +278,17 @@
               <kbd>5</kbd>
             </button>
           </div>
+
+          <!-- v2.0 Toppings Row (unlocked from Night 3+) -->
+          <div id="topping-section" class="topping-section hidden" role="group" aria-label="Pilihan Topping">
+            <span class="topping-label">TOPPING:</span>
+            <div class="topping-grid">
+              <button class="topping-btn" data-topping="chips" type="button" disabled>Choco <kbd>6</kbd></button>
+              <button class="topping-btn" data-topping="caramel" type="button" disabled>Karamel <kbd>7</kbd></button>
+              <button class="topping-btn" data-topping="cherry" type="button" disabled>Ceri <kbd>8</kbd></button>
+            </div>
+          </div>
+
           <div class="freezer-actions">
             <button id="btn-clear-cup" class="btn btn-ghost btn-sm" type="button" disabled>Kosongkan</button>
             <button id="btn-serve-order" class="btn btn-serve btn-sm" type="button" disabled>
@@ -308,7 +343,7 @@
             <kbd>R</kbd>
           </button>
           <button id="btn-confront" class="btn btn-action btn-confront hidden" type="button">
-            <span>Ungkap &amp; Lapor Polisi</span>
+            <span>Ungkap &amp; Jebak Polisi</span>
             <kbd>X</kbd>
           </button>
         </div>
@@ -316,7 +351,7 @@
     </section>
 
     <!-- =================================================================
-         SCREEN 4: SHIFT SUMMARY
+         SCREEN 4: SHIFT SUMMARY & UPGRADE SHOP
          ================================================================= -->
     <section id="screen-summary" class="screen screen-summary" aria-labelledby="summary-title">
       <div class="summary-card">
@@ -340,7 +375,7 @@
             <strong id="stat-income" class="stat-value">Rp 0</strong>
           </div>
           <div class="stat-box">
-            <span class="stat-label">Total Kas Kios</span>
+            <span class="stat-label">Kas Tersedia</span>
             <strong id="stat-total-money" class="stat-value">Rp 0</strong>
           </div>
         </div>
@@ -348,6 +383,12 @@
         <div class="summary-clues">
           <h3 class="summary-section-title">Petunjuk yang Ditemukan Malam Ini</h3>
           <ul id="summary-clue-list" class="clue-list-compact"></ul>
+        </div>
+
+        <!-- v2.0 Kiosk Upgrade Shop -->
+        <div id="summary-shop" class="summary-shop">
+          <h3 class="summary-section-title">Peningkatan Keamanan Kios (Gunakan Kas)</h3>
+          <div id="summary-shop-grid" class="shop-grid"></div>
         </div>
 
         <blockquote id="summary-note" class="summary-note">
@@ -373,7 +414,7 @@
         <div id="ending-narrative" class="ending-narrative"></div>
 
         <div class="ending-consequences">
-          <h3>Ringkasan Perjalanan Shift</h3>
+          <h3>Ringkasan Perjalanan 10 Shift</h3>
           <ul id="ending-stats-list" class="ending-stats-list"></ul>
         </div>
 
@@ -429,7 +470,7 @@
         <div class="setting-danger-zone">
           <div>
             <strong>Hapus Data Simpan</strong>
-            <p class="setting-hint">Menghapus progres malam dan catatan petunjuk tersimpan di browser ini.</p>
+            <p class="setting-hint">Menghapus progres 10 malam, upgrade, dan catatan petunjuk tersimpan.</p>
           </div>
           <button id="btn-reset-save" class="btn btn-danger-outline btn-sm" type="button">Reset Progres</button>
         </div>
@@ -442,30 +483,28 @@
     <!-- Credits & Controls Modal -->
     <dialog id="modal-credits" class="modal-dialog" aria-labelledby="credits-heading">
       <div class="modal-header">
-        <h2 id="credits-heading">Kredit &amp; Panduan</h2>
+        <h2 id="credits-heading">Kredit &amp; Panduan v2.0.0</h2>
         <button class="modal-close" data-close-modal="modal-credits" type="button" aria-label="Tutup">&times;</button>
       </div>
       <div class="modal-body credits-body">
-        <h3>NIGHT SHIFT: ICE CREAM</h3>
-        <p>Game horror psikologis 2D berbasis browser tentang simulasi jaga kios tengah malam, observasi detail, dan ketegangan mengambil keputusan di balik kaca.</p>
+        <h3>NIGHT SHIFT: ICE CREAM v2.0.0</h3>
+        <p>Edisi 10 Malam — Game horror psikologis 2D dengan sistem Ketenangan, CCTV Halte, Kunci Ganda, menu Topping, toko peningkatan keamanan kios, dan 14 petunjuk misteri.</p>
 
         <h4>Kontrol Lengkap</h4>
         <ul class="controls-list">
-          <li><strong>Klik Kiri</strong> — Semua tombol UI, jendela kios, telepon merah, saklar lampu, &amp; freezer</li>
-          <li><strong>E</strong> — Buka / tutup jendela pelayanan (termasuk banting tutup darurat!)</li>
-          <li><strong>Q</strong> — Buka / tutup menu observasi pelanggan</li>
-          <li><strong>R</strong> — Tolak pelayanan pelanggan</li>
-          <li><strong>T</strong> — Angkat telepon kios saat berdering</li>
-          <li><strong>F</strong> — Nyalakan / matikan lampu teras &amp; reset neon berkedip</li>
-          <li><strong>1 – 5</strong> — Ambil varian es krim (Vanila, Cokelat, Stroberi, Matcha, Mint)</li>
-          <li><strong>Enter</strong> — Serahkan pesanan es krim</li>
-          <li><strong>J</strong> — Buka buku catatan petunjuk</li>
-          <li><strong>Space</strong> — Lanjutkan / percepat teks dialog</li>
-          <li><strong>Esc</strong> — Jeda permainan / tutup panel</li>
+          <li><strong>Klik / Sentuh</strong> — Semua tombol, kaca jendela, telepon merah, saklar lampu, &amp; freezer</li>
+          <li><strong>E</strong> — Buka / tutup jendela pelayanan (banting tutup darurat!)</li>
+          <li><strong>L</strong> — Aktifkan / lepas Kunci Ganda anti-congkel</li>
+          <li><strong>V</strong> — Pantau CCTV Halte (cek arah kedatangan pelanggan)</li>
+          <li><strong>C</strong> — Minum Kopi Hangat (+32% Ketenangan)</li>
+          <li><strong>Q / R</strong> — Menu Observasi pelanggan / Tolak pelayanan</li>
+          <li><strong>T / F</strong> — Angkat telepon merah / Lampu teras &amp; reset neon</li>
+          <li><strong>1 – 5 / 6 – 8</strong> — 5 rasa es krim &amp; 3 topping (Choco, Karamel, Ceri)</li>
+          <li><strong>Enter / J / Space / Esc</strong> — Serahkan / Catatan Petunjuk / Lanjut / Jeda</li>
         </ul>
 
         <h4>Teknologi</h4>
-        <p class="credits-tech">HTML5 &middot; Vanilla CSS3 &middot; Vanilla JavaScript &middot; HTML5 Canvas 2D &middot; Web Audio API (Procedural) &middot; localStorage (100% Offline)</p>
+        <p class="credits-tech">HTML5 &middot; Vanilla CSS3 &middot; Vanilla JS &middot; Canvas 2D &middot; Web Audio API &middot; Android APK v2.0.0 (100% Offline)</p>
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" data-close-modal="modal-credits" type="button">Tutup</button>
@@ -495,20 +534,19 @@
       </div>
       <div class="modal-body">
         <p class="notebook-intro">
-          Kumpulan kejanggalan dan informasi yang kamu temukan selama jaga malam. Hubungkan setiap detail untuk membedakan pelanggan biasa dari ancaman sebenarnya.
+          Kumpulan kejanggalan selama 10 shift malam. Kumpulkan minimal 9 petunjuk untuk membuka pilihan penyergapan rahasia pada Malam ke-10 pukul 03:00!
         </p>
         <div id="clues-list" class="clues-list">
-          <p class="clues-empty">Belum ada petunjuk yang tercatat. Amati pelanggan dan jawab telepon kios.</p>
+          <p class="clues-empty">Belum ada petunjuk yang tercatat. Amati pelanggan, cek CCTV Halte, dan jawab telepon kios.</p>
         </div>
       </div>
       <div class="modal-footer">
-        <span id="clues-counter-footer" class="clues-counter-footer">0 petunjuk tercatat</span>
+        <span id="clues-counter-footer" class="clues-counter-footer">0 / 14 petunjuk tercatat</span>
         <button class="btn btn-primary" data-close-modal="modal-clues" type="button">Tutup Catatan [J]</button>
       </div>
     </dialog>
   </main>
 
-  <!-- Classic sequential scripts (100% file:// and offline compatible, zero CORS issues) -->
   <script src="js/save.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/dialogue.js"></script>

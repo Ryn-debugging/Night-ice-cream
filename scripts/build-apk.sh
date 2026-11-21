@@ -10,7 +10,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ANDROID_DIR="$ROOT_DIR/android/app/src/main"
 BUILD_DIR="/tmp/night-shift-apk-build"
 OUT_DIR="$ROOT_DIR/dist"
-OUT_APK="$OUT_DIR/NightShiftIceCream-v1.0.apk"
+OUT_APK="$OUT_DIR/NightShiftIceCream-v2.0.0.apk"
 
 ANDROID_HOME="${ANDROID_HOME:-/tmp/android-sdk}"
 BUILD_TOOLS="${BUILD_TOOLS:-$ANDROID_HOME/build-tools/34.0.0}"
@@ -50,8 +50,8 @@ echo "[4/7] Linking manifest, resources, and web assets..."
   -A "$BUILD_DIR/assets" \
   --min-sdk-version 24 \
   --target-sdk-version 34 \
-  --version-code 1 \
-  --version-name "1.0.0" \
+  --version-code 2 \
+  --version-name "2.0.0" \
   --auto-add-overlay \
   "$BUILD_DIR/compiled_res/res.zip"
 
@@ -104,8 +104,11 @@ fi
   --v1-signing-enabled true \
   --v2-signing-enabled true \
   --v3-signing-enabled true \
+  --v4-signing-enabled false \
   --out "$OUT_APK" \
   "$BUILD_DIR/aligned.apk"
+
+rm -f "${OUT_APK}.idsig"
 
 echo "Verifying signed APK..."
 "$APKSIGNER" verify --verbose "$OUT_APK"

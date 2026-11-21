@@ -650,6 +650,117 @@
       osc.start(now);
       osc.stop(now + 3.1);
     }
+
+    playDeadbolt(locked) {
+      if (!this.init()) return;
+      const now = this.ctx.currentTime;
+      const freqs = locked ? [210, 145] : [165, 290];
+      freqs.forEach((f, i) => {
+        const t = now + i * 0.055;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(f, t);
+        osc.frequency.exponentialRampToValueAtTime(65, t + 0.06);
+        gain.gain.setValueAtTime(0.18, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.075);
+      });
+    }
+
+    playCctvToggle(on) {
+      if (!this.init()) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(on ? 880 : 620, now);
+      osc.frequency.setValueAtTime(on ? 1180 : 440, now + 0.045);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    }
+
+    playCoffeeSip() {
+      if (!this.init()) return;
+      const now = this.ctx.currentTime;
+      [392, 493.88, 587.33].forEach((f, idx) => {
+        const t = now + idx * 0.08;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.1, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.38);
+      });
+    }
+
+    playLatchRattle() {
+      if (!this.init()) return;
+      const offsets = [0, 0.09, 0.19, 0.28, 0.4];
+      offsets.forEach((off, idx) => {
+        const t = this.ctx.currentTime + off;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(195 + (idx % 2) * 85, t);
+        osc.frequency.exponentialRampToValueAtTime(70, t + 0.06);
+        gain.gain.setValueAtTime(0.26, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.075);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.08);
+      });
+    }
+
+    playThunder() {
+      if (!this.init()) return;
+      const now = this.ctx.currentTime;
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = this.noiseBuffer;
+      const lp = this.ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(280, now);
+      lp.frequency.exponentialRampToValueAtTime(65, now + 1.8);
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.01, now);
+      gain.gain.linearRampToValueAtTime(0.42, now + 0.12);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.1);
+      noise.connect(lp);
+      lp.connect(gain);
+      gain.connect(this.sfxGain);
+      noise.start(now);
+      noise.stop(now + 2.15);
+    }
+
+    playUpgradeBuy() {
+      if (!this.init()) return;
+      const now = this.ctx.currentTime;
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const t = now + i * 0.065;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.12, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(t);
+        osc.stop(t + 0.35);
+      });
+    }
   }
 
   NS.Audio = new AudioEngine();

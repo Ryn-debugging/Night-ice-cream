@@ -48,6 +48,13 @@
         distantSilhouette: { active: false, alpha: 0, x: 0.22 },
         vanishingAlpha: 0,
         cupScoops: [],
+        cupTopping: null,
+        deadboltLocked: false,
+        cctvActive: false,
+        thunderAlpha: 0,
+        latchRattleTimer: 0,
+        sanity: 100,
+        halogenUpgrade: false,
         dangerLevel: 0,
         cameraShake: 0,
         hoveredTarget: null
@@ -197,15 +204,32 @@
       this.state.cameraShake = Math.max(this.state.cameraShake, intensity || 6);
     }
 
+    triggerThunder() {
+      this.state.thunderAlpha = this.state.reducedFlash ? 0.35 : 0.85;
+      this.triggerCameraShake(5);
+    }
+
+    triggerLatchRattle(duration) {
+      this.state.latchRattleTimer = Math.max(this.state.latchRattleTimer, duration || 1.1);
+      this.triggerCameraShake(4.5);
+    }
+
     update(dt) {
       this.time += dt;
       const s = this.state;
 
       // Smooth sliding window animation
-      const slideSpeed = s.windowTarget === 0 && s.dangerLevel > 0 ? 11 : 6.2;
+      const slideSpeed = s.windowTarget === 0 && s.dangerLevel > 0 ? 13 : 6.4;
       s.windowSlide += (s.windowTarget - s.windowSlide) * Math.min(1, dt * slideSpeed);
       if (Math.abs(s.windowTarget - s.windowSlide) < 0.004) {
         s.windowSlide = s.windowTarget;
+      }
+
+      if (s.thunderAlpha > 0) {
+        s.thunderAlpha = Math.max(0, s.thunderAlpha - dt * 2.4);
+      }
+      if (s.latchRattleTimer > 0) {
+        s.latchRattleTimer = Math.max(0, s.latchRattleTimer - dt);
       }
 
       // Customer fade in/out
@@ -1151,13 +1175,20 @@
     _drawSlidingWindowGlass(ctx, win) {
       const s = this.state;
       // Glass pane slides to the right as windowSlide goes 0 -> 1
+      const rattleX = s.latchRattleTimer > 0 ? Math.sin(this.time * 72) * 4.2 : 0;
       const slideOffset = s.windowSlide * (win.w * 0.86);
-      const gx = win.x + slideOffset;
+      const gx = win.x + slideOffset + rattleX;
       const gy = win.y;
       const gw = win.w;
       const gh = win.h;
 
       ctx.save();
+
+      // Lightning flash across exterior window
+      if (s.thunderAlpha > 0.02) {
+        ctx.fillStyle = `rgba(218, 232, 248, ${s.thunderAlpha * 0.45})`;
+        ctx.fillRect(win.x, win.y, win.w, win.h);
+      }
 
       // Frosted tinted glass surface
       const glassGrad = ctx.createLinearGradient(gx, gy, gx + gw, gy + gh);
@@ -1193,11 +1224,9 @@
         ctx.save();
         ctx.globalAlpha = s.handprintAlpha * 0.62;
         ctx.fillStyle = 'rgba(218, 230, 234, 0.7)';
-        // Palm
         ctx.beginPath();
         ctx.ellipse(hx, hy, 22, 26, -0.1, 0, Math.PI * 2);
         ctx.fill();
-        // Fingers
         const fingers = [
           [-24, -14, -0.6, 5, 16],
           [-14, -34, -0.16, 4.5, 21],
@@ -1235,8 +1264,66 @@
       // Left aluminum vertical pull bar + latch handle on sliding glass
       ctx.fillStyle = '#333d40';
       ctx.fillRect(gx, gy, 10, gh);
-      ctx.fillStyle = s.windowSlide < 0.08 ? '#5e9e79' : '#d99c4a';
+      ctx.fillStyle = s.deadboltLocked ? '#f0be73' : (s.windowSlide < 0.08 ? '#5e9e79' : '#d99c4a');
       ctx.fillRect(gx + 3, gy + gh * 0.44, 4, 46);
+
+      // Reinforced Deadbolt Lock Steel Latch visual when engaged!
+      if (s.deadboltLocked && s.windowSlide < 0.1) {
+        const ly = gy + gh * 0.52;
+        ctx.fillStyle = '#1b2224';
+        ctx.strokeStyle = '#e8b86d';
+        ctx.lineWidth = 2;
+        ctx.fillRect(win.x + 2, ly - 10, 38, 20);
+        ctx.strokeRect(win.x + 2, ly - 10, 38, 20);
+        ctx.fillStyle = '#e8b86d';
+        ctx.fillRect(win.x + 8, ly - 3, 24, 6);
+      }
+
+      // CCTV / Cermin Halte Night-Vision Monitor Overlay when active!
+      if (s.cctvActive) {
+        ctx.fillStyle = 'rgba(14, 38, 24, 0.42)';
+        ctx.fillRect(win.x, win.y, win.w, win.h);
+
+        // Moving tracking scan bar
+        const scanY = win.y + ((this.time * 75) % win.h);
+        ctx.fillStyle = 'rgba(135, 224, 165, 0.14)';
+        ctx.fillRect(win.x, scanY, win.w, 16);
+
+        // Corner brackets
+        ctx.strokeStyle = 'rgba(155, 232, 182, 0.72)';
+        ctx.lineWidth = 2;
+        const pad = 14;
+        const br = 18;
+        ctx.beginPath();
+        // Top-left
+        ctx.moveTo(win.x + pad, win.y + pad + br);
+        ctx.lineTo(win.x + pad, win.y + pad);
+        ctx.lineTo(win.x + pad + br, win.y + pad);
+        // Top-right
+        ctx.moveTo(win.x + win.w - pad - br, win.y + pad);
+        ctx.lineTo(win.x + win.w - pad, win.y + pad);
+        ctx.lineTo(win.x + win.w - pad, win.y + pad + br);
+        // Bottom-left
+        ctx.moveTo(win.x + pad, win.y + win.h - pad - br);
+        ctx.lineTo(win.x + pad, win.y + win.h - pad);
+        ctx.lineTo(win.x + pad + br, win.y + win.h - pad);
+        // Bottom-right
+        ctx.moveTo(win.x + win.w - pad - br, win.y + win.h - pad);
+        ctx.lineTo(win.x + win.w - pad, win.y + win.h - pad);
+        ctx.lineTo(win.x + win.w - pad, win.y + win.h - pad - br);
+        ctx.stroke();
+
+        // Blinking REC & camera label
+        if (Math.sin(this.time * 7) > -0.3) {
+          ctx.fillStyle = '#ff594d';
+          ctx.beginPath();
+          ctx.arc(win.x + 28, win.y + 28, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillStyle = '#b9f0cb';
+        ctx.font = '700 11px monospace';
+        ctx.fillText('REC · CAM-01 HALTE MELATI', win.x + 40, win.y + 32);
+      }
 
       ctx.restore();
     }
@@ -1455,20 +1542,22 @@
       if (this.state.cupScoops && this.state.cupScoops.length > 0) {
         const cupX = win.x + win.w * 0.72;
         const cupY = cy + 6;
-        this._drawCounterIceCreamCup(ctx, cupX, cupY, this.state.cupScoops);
+        this._drawCounterIceCreamCup(ctx, cupX, cupY, this.state.cupScoops, this.state.cupTopping);
       }
 
       ctx.restore();
     }
 
-    _drawCounterIceCreamCup(ctx, cx, cy, scoops) {
+    _drawCounterIceCreamCup(ctx, cx, cy, scoops, topping) {
       ctx.save();
+      let topSy = cy - 30;
       // Scoops stacked cleanly
       scoops.forEach((fid, idx) => {
         const fl = NS.Customers && NS.Customers.FLAVORS[fid];
         const color = fl ? fl.color : '#f3ead3';
         const rim = fl ? fl.rim : '#cbbda3';
         const sy = cy - 30 - idx * 14;
+        topSy = sy;
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(cx, sy, 14, 0, Math.PI * 2);
@@ -1477,6 +1566,34 @@
         ctx.lineWidth = 1.5;
         ctx.stroke();
       });
+
+      // Physical topping rendered right on top scoop!
+      if (topping === 'chips') {
+        ctx.fillStyle = '#2d1a0f';
+        [[-6, -4], [0, -7], [6, -3], [-3, 2], [4, 3]].forEach(([ox, oy]) => {
+          ctx.beginPath();
+          ctx.arc(cx + ox, topSy + oy, 1.9, 0, Math.PI * 2);
+          ctx.fill();
+        });
+      } else if (topping === 'caramel') {
+        ctx.strokeStyle = '#d48c2c';
+        ctx.lineWidth = 2.6;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(cx - 10, topSy - 4);
+        ctx.quadraticCurveTo(cx - 4, topSy - 10, cx, topSy - 4);
+        ctx.quadraticCurveTo(cx + 5, topSy + 2, cx + 10, topSy - 5);
+        ctx.stroke();
+      } else if (topping === 'cherry') {
+        ctx.fillStyle = '#cf3d34';
+        ctx.beginPath();
+        ctx.arc(cx, topSy - 14, 4.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 225, 220, 0.65)';
+        ctx.beginPath();
+        ctx.arc(cx - 1.5, topSy - 15.5, 1.4, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
       // Vintage paper cup
       ctx.fillStyle = '#e8dfd0';
@@ -1500,6 +1617,17 @@
       const dim = Math.max(0, 1 - s.interiorLightLevel);
       if (dim > 0.04) {
         ctx.fillStyle = `rgba(3, 5, 8, ${dim * 0.78})`;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // Low-sanity psychological dread tunnel-vision vignette
+      if (s.mode === 'gameplay' && s.sanity < 48) {
+        const dread = (48 - s.sanity) / 48;
+        const pulse = 0.8 + Math.sin(this.time * (5 + dread * 6)) * 0.2;
+        const sg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * (0.28 - dread * 0.1), w * 0.5, h * 0.45, w * 0.62);
+        sg.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        sg.addColorStop(1, `rgba(24, 5, 6, ${dread * 0.52 * pulse})`);
+        ctx.fillStyle = sg;
         ctx.fillRect(0, 0, w, h);
       }
 

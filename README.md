@@ -1,38 +1,31 @@
-# NIGHT SHIFT: ICE CREAM
+# NIGHT SHIFT: ICE CREAM (v2.0.0 — 10 Malam)
 
-**NIGHT SHIFT: ICE CREAM** adalah game horror psikologis 2D berbasis browser (HTML5, CSS3, Vanilla JavaScript, HTML5 Canvas, dan Web Audio API).
+**NIGHT SHIFT: ICE CREAM v2.0.0** adalah game horror psikologis 2D berbasis browser & Android APK dengan kampanye lengkap **10 malam**, sistem **Ketenangan (Sanity)**, **CCTV Halte**, **Kunci Ganda**, **Menu Topping**, dan **Toko Peningkatan Keamanan Kios**.
 
-Kamu berperan sebagai **Raka**, penjaga shift malam (`23:00 – 05:00`) di **Kios Es Krim Sora Dingin**, Jalan Melati Lama. Layani pelanggan yang datang melalui jendela pelayanan, amati detail wajah, pakaian, dan dialog mereka, catat setiap petunjuk tersembunyi, dan pastikan kamu tidak pernah membukakan kaca untuk ancaman yang menyamar.
+Kamu berperan sebagai **Raka**, penjaga kontrak sepuluh malam (`23:00 – 05:00`) di **Kios Es Krim Sora Dingin**, Jalan Melati Lama. Amati pelanggan di balik kaca, cek rekaman CCTV Halte, jaga kewarasanmu di tengah badai, dan ungkap misteri hilangnya penjaga sebelumnya—**Dimas**.
 
 ---
 
-## Fitur Utama
+## Pembaruan Utama di v2.0.0
 
-- **5 Malam dengan Eskalasi Cerita (`Malam 1 – Malam 5`)**: Dari shift tutorial hingga klimaks konfrontasi pukul `03:00` di Malam 5.
-- **Sistem Jendela Pelayanan (`F-02`)**: Buka, tutup, tolak pelayanan, amati dari balik kaca buram, hingga mekanik darurat *banting tutup jendela* saat penyusup mencoba menerjang masuk.
-- **Sistem Pesanan Es Krim (`F-03`)**: 5 varian rasa (Vanila Klasik, Cokelat Pekat, Stroberi Malam, Matcha Pahit, Mint Dingin) dengan pesanan tunggal dan kombinasi, slip pesanan diegetik, dan penghitungan kas otomatis.
-- **Sistem Kecurigaan & Red Herring (`F-04`)**: Pelanggan biasa bisa tampak mencurigakan (noda oli mekanik, wajah pucat mahasiswi begadang, masker perawat), sementara ancaman bersembunyi di balik detail halus (pakaian kering di tengah hujan, kontradiksi jadwal bus, tatapan tanpa berkedip, dan pengetahuan tentang isi kios).
-- **6 Kejadian Horror Atmosferis (`F-05`)**: Ketukan hantu, lampu neon berkedip / padam sejenak, bayangan di bawah tiang lampu, langkah kaki stereo mengitari kios, cap telapak tangan dingin di kaca berembun, penampakan sekilas saat lampu berkedip, serta panggilan telepon anonim.
-- **3 Ending Berbeda (`F-07`)**:
-  - **Good Ending (*Fajar di Jalan Melati*)** — Bertahan hingga pagi pada Malam 5.
-  - **Bad Ending (*Kios Kosong / Dipecat*)** — Keputusan fatal di jendela atau menolak terlalu banyak pelanggan sah.
-  - **Secret Ending (*Topeng Terbuka*)** — Kumpulkan minimal 5 petunjuk kritis dan ungkap identitas pelaku kepada polisi tepat pukul `03:00` di Malam 5.
-- **Simpan Progres Otomatis (`F-08`)**: Menggunakan `localStorage` dengan pemulihan otomatis apabila data simpan hilang atau rusak.
-- **100% Offline & Zero Backend**: Berjalan langsung dengan membuka `index.html` di browser desktop modern tanpa perlu server atau koneksi internet.
+- **10 Malam Penuh (2 Babak & 48 Pertemuan):**
+  - *Babak I (Malam 1–5):* Pengenalan pelanggan tetap, jadwal bus `23:30`, catatan Dimas, kartu nama **ARMAN**, hingga **Klimaks Pertengahan Malam 5** pukul `03:00`.
+  - *Babak II (Malam 6–10):* Seragam kerja Dimas yang dicuri, peniru pelanggan tetap, badai petir & mati lampu total, rekaman suara Dimas, ruang genset halte tua, hingga **Klimaks Malam ke-10 pukul `03:00`**.
+- **Sistem Ketenangan (`100%`) & Kopi Hangat (`[C]`):** Anomali horror dan kegelapan menggerus mentalmu; jaga ketenangan dengan melayani pelanggan sah secara tepat atau meneguk **Kopi Hangat (`+32%`)**.
+- **CCTV Halte (`[V]`):** Pantau mode *night-vision* `CAM-01 HALTE MELATI` untuk mengecek arah kedatangan setiap pelanggan (jalan utama / taksi vs lorong gelap belakang halte).
+- **Kunci Ganda (`[L]`):** Kunci baja pengaman anti-congkel untuk mencegah kesalahan membuka kaca dan menahan serangan **Grendel Diguncang** pada Malam 6–10.
+- **5 Rasa + 3 Topping Es Krim:** Mulai Malam 3, layani kombinasi **Choco Chips (`6`)**, **Saus Karamel (`7`)**, dan **Ceri Merah (`8`)** yang tampil langsung di gelas konter.
+- **Toko Peningkatan Keamanan Kios:** Belanjakan uang kas di layar Ringkasan Shift untuk memasang *Lampu Teras Halogen*, *Kaca Anti-Pecah & Rel Baja*, *Stabilizer Listrik Neon*, dan *Termos Kopi Barista*.
+- **14 Petunjuk & 5 Variasi Ending:** Good Ending (*Fajar di Jalan Melati*), Secret Ending (*Topeng Terbuka — butuh minimal 9 petunjuk di Malam 10*), serta Bad Ending (*Kios Kosong*, *Dipecat*, dan *Pingsan di Balik Konter*).
 
 ---
 
 ## Cara Menjalankan
 
-### 1. Versi Android (APK)
-- File APK siap pasang tersedia di [`dist/NightShiftIceCream-v1.0.apk`](dist/NightShiftIceCream-v1.0.apk).
-- Salin file `.apk` ke HP Android (Android 7.0 / API 24 ke atas), ketuk file untuk memasang, lalu aktifkan izin **Install dari sumber tidak dikenal / Unknown Sources** jika diminta.
-- **Fitur Native Android:**
-  - Layar penuh lanskap (*immersive sticky fullscreen*), mendukung layar *notch/punch-hole*.
-  - 100% offline tanpa izin berbahaya (*zero permissions*), progres tersimpan otomatis (`localStorage`).
-  - Layout sentuh khusus layar ponsel lanskap + tombol **Back** native untuk jeda/keluar.
-  - Audio otomatis jeda saat aplikasi berpindah ke latar belakang.
-- **Build Ulang APK:** Jalankan `./scripts/build-apk.sh` (memerlukan JDK 17 + Android SDK Build Tools 34) atau buka folder `android/` di Android Studio.
+### 1. Versi Android (APK v2.0.0)
+- File APK siap pasang tersedia di [`dist/NightShiftIceCream-v2.0.0.apk`](dist/NightShiftIceCream-v2.0.0.apk).
+- Salin ke HP Android (Android 7.0 / API 24 ke atas), ketuk file untuk memasang, dan izinkan **Install dari sumber tidak dikenal / Unknown Sources** jika diminta.
+- **Build Ulang APK:** Jalankan `./scripts/build-apk.sh` (JDK 17 + Android SDK Build Tools 34) atau buka folder `android/` di Android Studio.
 
 ### 2. Langsung di Browser Desktop (Tanpa Server)
 Buka file `index.html` langsung di browser desktop modern (Chrome, Edge, Firefox, atau Safari).
@@ -47,42 +40,15 @@ Lalu buka `http://localhost:8000`.
 
 ## Kontrol
 
-| Aksi | Mouse | Keyboard |
+| Aksi | Mouse / Sentuh | Keyboard |
 | :--- | :--- | :--- |
-| Buka / tutup jendela (termasuk banting tutup darurat) | Klik tombol / klik langsung kaca jendela | `E` |
-| Amati pelanggan (Wajah, Pakaian, Tanya/Uji Lampu) | Klik tombol **Amati** | `Q` |
-| Tolak pelayanan | Klik tombol **Tolak** | `R` |
-| Angkat telepon merah | Klik tombol / klik telepon di meja | `T` |
-| Nyalakan/matikan lampu teras & reset neon | Klik tombol / klik saklar di dinding | `F` |
-| Pilih rasa es krim (saat jendela terbuka) | Klik varian di Freezer | `1` – `5` |
-| Serahkan pesanan es krim | Klik **Serahkan** | `Enter` |
-| Buka buku catatan petunjuk | Klik **Petunjuk** di bar atas | `J` |
-| Lanjutkan / percepat dialog | Klik kotak dialog | `Space` |
-| Jeda permainan / tutup panel | Klik **Jeda** | `Esc` |
-
----
-
-## Struktur Proyek
-
-```text
-Night-ice-cream/
-├── index.html          # Struktur utama & seluruh alur layar
-├── css/
-│   └── style.css       # Gaya noir horror 2D & HUD diegetik responsif
-├── js/
-│   ├── save.js         # Penyimpanan localStorage & pemulihan data rusak
-│   ├── audio.js        # Mesin Web Audio API prosedural (100% offline)
-│   ├── dialogue.js     # Narasi, intro, telepon, petunjuk, dan 3 ending
-│   ├── customers.js    # Katalog es krim & 5 malam pelanggan + red herring
-│   ├── events.js       # Mesin kejadian acak horror dengan pembatas frekuensi
-│   ├── renderer.js     # Renderer Canvas 2D (hujan, kios, kaca, karakter)
-│   ├── game.js         # State machine utama permainan
-│   └── main.js         # Bootstrap DOM, hit-testing Canvas, & shortcut keyboard
-├── docs/
-│   └── narrative.md    # Dokumen desain narasi & jaringan petunjuk terpisah
-└── assets/
-    ├── images/
-    │   └── favicon.svg
-    ├── audio/
-    └── fonts/
-```
+| Buka / tutup jendela (banting tutup darurat) | Klik tombol / kaca jendela | `E` |
+| Aktifkan / lepas Kunci Ganda anti-congkel | Klik **Kunci** | `L` |
+| Pantau CCTV Halte (*night vision*) | Klik **CCTV** | `V` |
+| Minum Kopi Hangat (`+32%` Ketenangan) | Klik **Kopi Hangat** | `C` |
+| Amati pelanggan (Wajah, Pakaian, Tanya/Lampu) | Klik **Amati** | `Q` |
+| Tolak pelayanan | Klik **Tolak** | `R` |
+| Angkat telepon merah / Lampu & reset neon | Klik tombol / objek kios | `T` / `F` |
+| Pilih 5 rasa es krim & 3 topping | Klik di Freezer | `1`–`5` / `6`–`8` |
+| Serahkan pesanan / Catatan Petunjuk | Klik **Serahkan** / **Petunjuk** | `Enter` / `J` |
+| Lanjutkan dialog / Jeda | Klik dialog / **Jeda** | `Space` / `Esc` |

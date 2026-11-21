@@ -1,5 +1,5 @@
 /* ==========================================================================
-   NIGHT SHIFT: ICE CREAM — Main Bootstrap, DOM UI Binding & Input Controller
+   NIGHT SHIFT: ICE CREAM v2.0.0 — Main Bootstrap, DOM UI Binding & Inputs
    ========================================================================== */
 
 (function (global) {
@@ -11,11 +11,15 @@
     return document.getElementById(id);
   }
 
+  function formatRupiah(amount) {
+    const val = Math.max(0, Math.floor(amount || 0));
+    return 'Rp ' + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  }
+
   function initApp() {
     const canvas = $('game-canvas');
     const renderer = new NS.Renderer(canvas);
 
-    // Cached DOM references
     const screens = {
       menu: $('screen-menu'),
       intro: $('screen-intro'),
@@ -51,7 +55,16 @@
       if (gameRef) gameRef.modalLocked = false;
     }
 
-    // UI Hooks passed to NightShiftGame
+    function updateSanityDOM(val) {
+      const clamped = Math.max(0, Math.min(100, Math.round(val)));
+      $('hud-sanity-val').textContent = `${clamped}%`;
+      const bar = $('hud-sanity-bar');
+      bar.style.width = `${clamped}%`;
+      const pill = $('hud-sanity-pill');
+      pill.classList.toggle('warn', clamped < 60 && clamped >= 35);
+      pill.classList.toggle('critical', clamped < 35);
+    }
+
     const uiHooks = {
       showScreen(name) {
         Object.keys(screens).forEach((k) => {
@@ -64,7 +77,7 @@
         const continueMeta = $('continue-meta');
         if (saved) {
           btnContinue.classList.remove('hidden');
-          continueMeta.textContent = `Malam ${saved.night} · ${saved.clues.length} Petunjuk`;
+          continueMeta.textContent = `Malam ${saved.night}/${NS.Save.MAX_NIGHTS} · ${saved.clues.length} Petunjuk`;
         } else {
           btnContinue.classList.add('hidden');
         }
@@ -97,6 +110,10 @@
       updateClock(clockText, targetText) {
         $('hud-clock').textContent = clockText;
         $('hud-clock-target').textContent = '/ ' + targetText;
+      },
+
+      updateSanity(val) {
+        updateSanityDOM(val);
       },
 
       renderDialogue(speaker, tag, text, style, hasMore) {
@@ -166,36 +183,39 @@
         $('setting-reduced-flash').checked = s.reducedFlash;
         $('setting-text-speed').value = s.textSpeed;
 
-        const muteBtn = $('btn-mute');
-        muteBtn.classList.toggle('muted', s.muted);
+        $('btn-mute').classList.toggle('muted', s.muted);
         $('mute-icon').textContent = s.muted ? '✕' : '♪';
       },
 
       syncGameplayHUD(h) {
-        $('hud-night').textContent = `MALAM ${h.night}`;
+        $('hud-night').textContent = `MALAM ${h.night}/${h.maxNights}`;
         $('hud-night-subtitle').textContent = h.nightTitle;
         $('hud-clock').textContent = h.clockText;
         $('hud-clock-target').textContent = '/ ' + h.targetClockText;
         $('hud-money').textContent = h.moneyText;
         $('hud-clue-count').textContent = String(h.clueCount);
         $('hud-customer-progress').textContent = h.customerProgress;
+        updateSanityDOM(h.sanity);
 
-        // Strikes badge
         const strikesPill = $('hud-strikes-pill');
         $('hud-strikes-val').textContent = `${h.strikes} / ${h.maxStrikes}`;
         strikesPill.classList.toggle('warn', h.strikes === 1);
         strikesPill.classList.toggle('critical', h.strikes >= 2);
 
-        // Mute button
         $('btn-mute').classList.toggle('muted', h.muted);
         $('mute-icon').textContent = h.muted ? '✕' : '♪';
 
-        // Window badge & action button
+        // Window badge & main toggle
         const winBadge = $('hud-window-badge');
-        winBadge.className = 'window-badge ' + (h.inIntrusion ? 'danger' : (h.windowOpen ? 'open' : 'closed'));
+        const badgeState = h.inIntrusion
+          ? 'danger'
+          : (h.windowOpen ? 'open' : (h.deadboltLocked ? 'locked' : 'closed'));
+        winBadge.className = 'window-badge ' + badgeState;
         $('hud-window-text').textContent = h.inIntrusion
           ? 'BAHAYA! TUTUP JENDELA!'
-          : (h.windowOpen ? 'JENDELA TERBUKA' : 'JENDELA TERTUTUP');
+          : (h.windowOpen
+            ? 'JENDELA TERBUKA'
+            : (h.deadboltLocked ? 'TERKUNCI GANDA' : 'JENDELA TERTUTUP'));
 
         const btnWin = $('btn-window');
         btnWin.classList.toggle('is-open', h.windowOpen);
@@ -207,15 +227,31 @@
         const btnPhone = $('btn-phone');
         btnPhone.classList.toggle('ringing', h.phoneRinging);
         $('phone-led').className = 'device-led' + (h.phoneRinging ? ' ringing' : (h.activePhone ? ' active' : ''));
-        $('phone-status').textContent = h.phoneRinging ? 'BERDERING! Angkat' : (h.activePhone ? 'Tersambung...' : 'Siaga');
+        $('phone-status').textContent = h.phoneRinging ? 'BERDERING!' : (h.activePhone ? 'Tersambung' : 'Siaga');
 
-        // Light switch device button
+        // Light switch button
         const btnLight = $('btn-light');
         btnLight.classList.toggle('outage', h.lightOut);
         $('light-led').className = 'device-led' + (h.lightOut ? ' ringing' : (h.porchLightOn ? ' active' : ''));
         $('light-status').textContent = h.lightOut
-          ? 'NEON REDUP! Reset'
+          ? 'PADAM! Reset'
           : (h.porchLightOn ? 'Teras: Nyala' : 'Teras: Padam');
+
+        // Tactical CCTV & Deadbolt buttons
+        const btnCctv = $('btn-cctv');
+        btnCctv.classList.toggle('active-tactical', h.cctvActive);
+        $('cctv-status').textContent = h.cctvActive ? 'Aktif' : 'Halte';
+
+        const btnDeadbolt = $('btn-deadbolt');
+        btnDeadbolt.classList.toggle('active-tactical', h.deadboltLocked);
+        btnDeadbolt.classList.toggle('urgent-rattle', h.latchRattleActive && !h.deadboltLocked);
+        $('deadbolt-status').textContent = h.latchRattleActive && !h.deadboltLocked
+          ? 'KUNCI!'
+          : (h.deadboltLocked ? 'Terkunci' : 'Lepas');
+
+        // Coffee button
+        $('coffee-status').textContent = `${h.coffeeCostText} · +32%`;
+        $('btn-coffee').classList.toggle('low-sanity-hint', h.sanity < 50);
 
         // Observe / Refuse / Confront buttons
         const btnObs = $('btn-observe');
@@ -225,9 +261,7 @@
 
         ['face', 'clothes', 'probe'].forEach((k) => {
           const el = $('btn-obs-' + k);
-          if (el) {
-            el.classList.toggle('checked', Boolean(h.observedAspects[k]));
-          }
+          if (el) el.classList.toggle('checked', Boolean(h.observedAspects[k]));
         });
 
         $('btn-refuse').disabled = !h.canRefuse;
@@ -248,7 +282,11 @@
                 return `<li class="ticket-order-item"><span class="swatch swatch-${fid}"></span>${fl ? fl.name : fid}</li>`;
               })
               .join('');
-            orderBody.innerHTML = `<ul class="ticket-order-list">${items}</ul>`;
+            const topObj = h.customer.topping && NS.Customers.TOPPINGS[h.customer.topping];
+            const topRow = topObj
+              ? `<li class="ticket-order-item ticket-topping">+ Topping: ${topObj.name}</li>`
+              : '';
+            orderBody.innerHTML = `<ul class="ticket-order-list">${items}${topRow}</ul>`;
           } else {
             orderBody.innerHTML = '<p class="ticket-empty">Tidak memesan es krim.</p>';
           }
@@ -261,21 +299,26 @@
         const cupScoopsEl = $('cup-scoops');
         if (h.canServe) {
           cupPrev.classList.remove('hidden');
-          if (h.cupScoops.length === 0) {
+          if (h.cupScoops.length === 0 && !h.cupTopping) {
             cupScoopsEl.innerHTML = '<span class="ticket-empty">Kosong — pilih rasa di freezer</span>';
           } else {
-            cupScoopsEl.innerHTML = h.cupScoops
+            const scoopHtml = h.cupScoops
               .map((fid) => {
                 const fl = NS.Customers.FLAVORS[fid];
                 return `<span class="cup-scoop-chip"><span class="swatch swatch-${fid}"></span>${fl ? fl.shortName : fid}</span>`;
               })
               .join('');
+            const topObj = h.cupTopping && NS.Customers.TOPPINGS[h.cupTopping];
+            const topHtml = topObj
+              ? `<span class="cup-scoop-chip cup-topping-chip">+${topObj.shortName}</span>`
+              : '';
+            cupScoopsEl.innerHTML = scoopHtml + topHtml;
           }
         } else {
           cupPrev.classList.add('hidden');
         }
 
-        // Freezer lock state
+        // Freezer lock & Toppings state
         const freezer = $('freezer-panel');
         freezer.classList.toggle('locked', !h.canServe);
         freezer.classList.toggle('unlocked', h.canServe);
@@ -286,16 +329,25 @@
         document.querySelectorAll('.flavor-btn').forEach((b) => {
           b.disabled = !h.canServe;
         });
-        $('btn-clear-cup').disabled = !h.canServe || h.cupScoops.length === 0;
+
+        const topSec = $('topping-section');
+        topSec.classList.toggle('hidden', !h.toppingsUnlocked);
+        document.querySelectorAll('.topping-btn').forEach((b) => {
+          const tid = b.getAttribute('data-topping');
+          b.disabled = !h.canServe || !h.toppingsUnlocked;
+          b.classList.toggle('selected', h.cupTopping === tid);
+        });
+
+        $('btn-clear-cup').disabled = !h.canServe || (h.cupScoops.length === 0 && !h.cupTopping);
         $('btn-serve-order').disabled = !h.canServe || h.cupScoops.length === 0;
       },
 
       renderSummary(data) {
-        $('summary-badge').textContent = `SHIFT MALAM ${data.night} SELESAI`;
+        $('summary-badge').textContent = `SHIFT MALAM ${data.night} / ${data.maxNights} SELESAI`;
         $('summary-title').textContent = `Malam ${data.night}: ${data.title}`;
         $('summary-subtitle').textContent = data.isFinalNight
-          ? 'Malam terakhir berhasil dilewati hingga pagi.'
-          : `Progres otomatis disimpan. Bersiap menghadapi Malam ${data.night + 1}.`;
+          ? 'Sepuluh malam kontrak telah selesai.'
+          : `Progres otomatis disimpan. Bersiap menghadapi Malam ${data.night + 1} dari ${data.maxNights}.`;
 
         $('stat-served').textContent = String(data.served);
         $('stat-threats-refused').textContent = String(data.threatsRefused);
@@ -307,13 +359,39 @@
         if (data.clues.length === 0) {
           const li = document.createElement('li');
           li.className = 'no-clue';
-          li.textContent = 'Tidak ada petunjuk baru yang tercatat malam ini. Coba gunakan tombol Amati [Q] lebih sering.';
+          li.textContent = 'Tidak ada petunjuk baru malam ini. Gunakan Amati [Q] dan CCTV Halte [V] lebih sering.';
           list.appendChild(li);
         } else {
           data.clues.forEach((c) => {
             const li = document.createElement('li');
             li.innerHTML = `<strong>${c.title}:</strong> ${c.summary}`;
             list.appendChild(li);
+          });
+        }
+
+        // Render Kiosk Upgrade Shop (hidden on Final Night 10)
+        const shopEl = $('summary-shop');
+        const shopGrid = $('summary-shop-grid');
+        shopEl.classList.toggle('hidden', data.isFinalNight);
+        shopGrid.innerHTML = '';
+        if (!data.isFinalNight && data.upgradeCatalog) {
+          Object.values(data.upgradeCatalog).forEach((item) => {
+            const owned = Boolean(data.upgrades && data.upgrades[item.id]);
+            const canAfford = !owned && data.totalMoney >= item.price;
+            const card = document.createElement('div');
+            card.className = 'shop-card' + (owned ? ' owned' : '');
+            card.innerHTML = `
+              <div class="shop-card-top">
+                <strong class="shop-name">${item.name}</strong>
+                <span class="shop-price">${owned ? 'TERPASANG ✓' : formatRupiah(item.price)}</span>
+              </div>
+              <p class="shop-desc">${item.desc}</p>
+              <button class="btn btn-sm ${owned ? 'btn-ghost' : 'btn-secondary'} btn-buy-upgrade"
+                      data-upgrade="${item.id}" type="button" ${owned || !canAfford ? 'disabled' : ''}>
+                ${owned ? 'Sudah Dimiliki' : (canAfford ? 'Beli & Pasang' : 'Kas Belum Cukup')}
+              </button>
+            `;
+            shopGrid.appendChild(card);
           });
         }
 
@@ -340,7 +418,7 @@
 
         const statsEl = $('ending-stats-list');
         statsEl.innerHTML = `
-          <li>Malam Dicapai: <strong>Malam ${summary.nightReached} / 5</strong></li>
+          <li>Malam Dicapai: <strong>Malam ${summary.nightReached} / ${summary.maxNights}</strong></li>
           <li>Pelanggan Dilayani: <strong>${summary.totalServed}</strong></li>
           <li>Ancaman Ditolak: <strong>${summary.totalThreatsRefused}</strong></li>
           <li>Total Kas Kios: <strong>${summary.totalMoneyText}</strong></li>
@@ -354,7 +432,7 @@
 
     const game = new NS.Game(renderer, uiHooks);
     gameRef = game;
-    NS.instance = game; // Convenient inspection hook for testing & debugging
+    NS.instance = game;
 
     function renderCluesModal() {
       const clues = game.getDiscoveredClueObjects();
@@ -362,7 +440,7 @@
       container.innerHTML = '';
       if (clues.length === 0) {
         container.innerHTML =
-          '<p class="clues-empty">Belum ada petunjuk yang tercatat. Amati pelanggan di balik kaca dan jawab telepon kios.</p>';
+          '<p class="clues-empty">Belum ada petunjuk yang tercatat. Amati pelanggan di balik kaca, pantau CCTV Halte, dan jawab telepon kios.</p>';
       } else {
         clues.forEach((c) => {
           const card = document.createElement('article');
@@ -378,11 +456,11 @@
         });
       }
       const total = Object.keys(NS.Dialogue.CLUES).length;
-      $('clues-counter-footer').textContent = `${clues.length} / ${total} petunjuk tercatat`;
+      $('clues-counter-footer').textContent = `${clues.length} / ${total} petunjuk tercatat (butuh ${NS.SECRET_CLUE_THRESHOLD} untuk Secret Ending)`;
     }
 
     // =========================================================================
-    // EVENT BINDINGS — MENUS & MODALS
+    // EVENT BINDINGS
     // =========================================================================
 
     $('btn-new-game').addEventListener('click', () => game.startNewGame());
@@ -399,7 +477,6 @@
       openModal('modal-credits');
     });
 
-    // Intro controls
     $('btn-intro-back').addEventListener('click', () => {
       NS.Audio.playUiClick();
       game.showMenu();
@@ -407,7 +484,6 @@
     $('btn-intro-skip').addEventListener('click', () => game.skipIntroAndStart());
     $('btn-intro-next').addEventListener('click', () => game.advanceIntro());
 
-    // Gameplay HUD controls
     $('btn-window').addEventListener('click', () => game.toggleWindow());
     $('btn-emergency-close').addEventListener('click', () => game.toggleWindow());
     $('btn-observe').addEventListener('click', () => game.toggleObserveMenu());
@@ -422,10 +498,19 @@
 
     $('btn-phone').addEventListener('click', () => game.interactPhone());
     $('btn-light').addEventListener('click', () => game.toggleLight());
+    $('btn-cctv').addEventListener('click', () => game.toggleCctv());
+    $('btn-deadbolt').addEventListener('click', () => game.toggleDeadbolt());
+    $('btn-coffee').addEventListener('click', () => game.drinkCoffee());
 
     document.querySelectorAll('.flavor-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         game.addScoop(btn.getAttribute('data-flavor'));
+      });
+    });
+
+    document.querySelectorAll('.topping-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        game.selectTopping(btn.getAttribute('data-topping'));
       });
     });
 
@@ -447,14 +532,19 @@
       openModal('modal-clues');
     });
 
-    // Shift summary controls
+    // Upgrade Shop delegation on Shift Summary
+    $('summary-shop-grid').addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-upgrade]');
+      if (!btn || btn.disabled) return;
+      game.buyUpgrade(btn.getAttribute('data-upgrade'));
+    });
+
     $('btn-summary-next').addEventListener('click', () => game.proceedNextNight());
     $('btn-summary-menu').addEventListener('click', () => {
       NS.Audio.playUiClick();
       game.showMenu();
     });
 
-    // Ending controls
     $('btn-ending-retry-night').addEventListener('click', () => game.retryCurrentNight());
     $('btn-ending-restart').addEventListener('click', () => game.startNewGame());
     $('btn-ending-menu').addEventListener('click', () => {
@@ -462,7 +552,6 @@
       game.showMenu();
     });
 
-    // Pause modal controls
     $('btn-pause-resume').addEventListener('click', () => {
       NS.Audio.playUiClick();
       game.setPaused(false);
@@ -489,7 +578,6 @@
       game.showMenu();
     });
 
-    // Generic modal close buttons
     document.querySelectorAll('[data-close-modal]').forEach((btn) => {
       btn.addEventListener('click', () => {
         NS.Audio.playUiClick();
@@ -511,7 +599,6 @@
       }
     });
 
-    // Settings input listeners
     function syncSettingsFromDOM() {
       game.applySettings({
         masterVolume: Number($('setting-master-vol').value) / 100,
@@ -540,10 +627,7 @@
       }, 1800);
     });
 
-    // =========================================================================
-    // DIRECT CANVAS INTERACTION (CLICK WINDOW / PHONE / LIGHT SWITCH)
-    // =========================================================================
-
+    // Direct Canvas interaction
     canvas.addEventListener('mousemove', (ev) => {
       if (game.screen !== 'gameplay' || game.paused || activeModalId) {
         renderer.state.hoveredTarget = null;
@@ -568,15 +652,11 @@
       }
     });
 
-    // =========================================================================
-    // KEYBOARD SHORTCUTS (PRD Section 5.3 + Power-user shortcuts)
-    // =========================================================================
-
+    // Keyboard Shortcuts
     global.addEventListener('keydown', (ev) => {
       if (ev.repeat) return;
       const key = ev.key.toLowerCase();
 
-      // Escape: close modal OR pause/resume gameplay
       if (ev.key === 'Escape') {
         if (activeModalId === 'modal-pause') {
           game.setPaused(false);
@@ -592,7 +672,6 @@
         return;
       }
 
-      // Toggle Clue Notebook with J
       if (key === 'j' && game.screen === 'gameplay' && !game.paused) {
         if (activeModalId === 'modal-clues') {
           closeAllModals();
@@ -604,7 +683,6 @@
         return;
       }
 
-      // Ignore gameplay shortcuts when a modal is open
       if (activeModalId) return;
 
       if (game.screen === 'intro' && (ev.code === 'Space' || ev.key === 'Enter')) {
@@ -621,6 +699,15 @@
       } else if (key === 'e') {
         ev.preventDefault();
         game.toggleWindow();
+      } else if (key === 'l') {
+        ev.preventDefault();
+        game.toggleDeadbolt();
+      } else if (key === 'v') {
+        ev.preventDefault();
+        game.toggleCctv();
+      } else if (key === 'c') {
+        ev.preventDefault();
+        game.drinkCoffee();
       } else if (key === 'q') {
         ev.preventDefault();
         game.toggleObserveMenu();
@@ -640,13 +727,15 @@
         ev.preventDefault();
         game.serveOrder();
       } else if (key >= '1' && key <= '5') {
-        const idx = Number(key) - 1;
-        const fid = NS.Customers.FLAVOR_LIST[idx];
+        const fid = NS.Customers.FLAVOR_LIST[Number(key) - 1];
         if (fid) game.addScoop(fid);
+      } else if (key >= '6' && key <= '8') {
+        const tid = NS.Customers.TOPPING_LIST[Number(key) - 6];
+        if (tid) game.selectTopping(tid);
       }
     });
 
-    // Android native WebView lifecycle & back-button hooks
+    // Android WebView native lifecycle & Back button hooks
     NS.handleAndroidBack = function () {
       if (activeModalId === 'modal-pause') {
         game.setPaused(false);
@@ -668,7 +757,7 @@
         game.showMenu();
         return true;
       }
-      return false; // On Main Menu -> allow Android to exit app cleanly
+      return false;
     };
 
     NS.onAppPause = function () {
@@ -683,20 +772,16 @@
       renderer.resize();
     };
 
-    // Unlock Web Audio cleanly on first touch on Android
     document.addEventListener('touchstart', () => NS.Audio.unlock(), { once: true, passive: true });
 
-    // Resize & orientation change listeners
     global.addEventListener('resize', () => renderer.resize());
     global.addEventListener('orientationchange', () => {
       global.setTimeout(() => renderer.resize(), 180);
     });
 
-    // Initial render & boot to Main Menu
     uiHooks.syncSettingsUI(game.settings);
     game.showMenu();
 
-    // Smooth requestAnimationFrame loop
     let lastTs = performance.now();
     function frame(ts) {
       const dt = Math.min(0.1, Math.max(0.001, (ts - lastTs) / 1000));

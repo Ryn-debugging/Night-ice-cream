@@ -1,7 +1,7 @@
 /* ==========================================================================
-   NIGHT SHIFT: ICE CREAM — Random Horror Events Manager (F-05)
-   Implements 6 throttled atmospheric horror events with full visual + audio
-   parity and safety guards so events NEVER lock player controls.
+   NIGHT SHIFT: ICE CREAM v2.0.0 — Random Horror Events Manager (F-05)
+   Implements 10 throttled atmospheric & interactive horror events scaling
+   across Nights 1–10 with sanity impact and upgrade mitigation.
    ========================================================================== */
 
 (function (global) {
@@ -9,33 +9,22 @@
 
   const NS = (global.NightShift = global.NightShift || {});
 
-  /**
-   * 6 Distinct Atmospheric Horror Events (PRD F-05):
-   * 1. phantom_knock      — Knock heard & ripple seen on glass when NO customer is present
-   * 2. light_flicker      — Fluorescent ceiling light flickers / dims (can be restored with [F])
-   * 3. distant_silhouette — Dark figure lingers briefly under the distant streetlamp in mist
-   * 4. footsteps_circle   — Wet stereo footsteps pace around outside the kiosk walls
-   * 5. handprint_glass    — Foggy cold handprint materializes silently on the frosted glass
-   * 6. vanishing_glimpse  — Light blinks while a figure briefly appears outside, then vanishes!
-   * (Plus creepy phone calls scheduled via Game & Events!)
-   */
   class EventManager {
     constructor() {
       this.cooldown = 12;
       this.recentEvents = [];
       this.totalTriggeredThisNight = 0;
-      this.maxEventsPerNight = 5;
+      this.maxEventsPerNight = 4;
     }
 
     resetForNight(nightNumber) {
-      this.cooldown = Math.max(7, 15 - nightNumber * 1.6);
+      this.cooldown = Math.max(6.5, 14.5 - nightNumber * 0.85);
       this.recentEvents = [];
       this.totalTriggeredThisNight = 0;
-      this.maxEventsPerNight = 2 + nightNumber; // Night 1: 3 max, Night 5: 7 max
+      this.maxEventsPerNight = 2 + Math.min(8, Math.ceil(nightNumber * 0.9));
     }
 
     update(dt, ctx) {
-      // ctx: { night, phase, hasCustomer, windowOpen, phoneRinging, lightOut, reducedFlash, triggerCallback }
       if (ctx.phase !== 'waiting' && ctx.phase !== 'customer_present') return;
       if (this.totalTriggeredThisNight >= this.maxEventsPerNight) return;
 
@@ -43,9 +32,9 @@
       if (this.cooldown > 0) return;
 
       const config = NS.Dialogue.NIGHT_CONFIGS[ctx.night] || NS.Dialogue.NIGHT_CONFIGS[1];
-      const roll = Math.random();
-      if (roll > config.eventChance + (ctx.windowOpen && !ctx.hasCustomer ? 0.25 : 0)) {
-        this.cooldown = 7;
+      const openPenalty = ctx.windowOpen && !ctx.hasCustomer ? 0.25 : 0;
+      if (Math.random() > config.eventChance + openPenalty) {
+        this.cooldown = 6.5;
         return;
       }
 
@@ -55,7 +44,6 @@
         return;
       }
 
-      // Avoid repeating the exact same event back-to-back
       const filtered = pool.filter((e) => e !== this.recentEvents[this.recentEvents.length - 1]);
       const chosen = filtered.length > 0
         ? filtered[Math.floor(Math.random() * filtered.length)]
@@ -63,8 +51,7 @@
 
       this.recentEvents.push(chosen);
       this.totalTriggeredThisNight += 1;
-      // Generous cooldown so events enhance tension instead of overwhelming the player
-      this.cooldown = Math.max(11, 21 - ctx.night * 2) + Math.random() * 6;
+      this.cooldown = Math.max(9.5, 20 - ctx.night * 1.05) + Math.random() * 5;
 
       ctx.triggerCallback(chosen);
     }
@@ -86,13 +73,25 @@
         if (night >= 3) {
           pool.push('vanishing_glimpse');
         }
+        if (night >= 5) {
+          pool.push('vent_whisper');
+        }
+        if (night >= 6 && !ctx.windowOpen) {
+          pool.push('latch_rattle');
+        }
       }
 
-      // Can happen during waiting or calmly during customer presence (non-blocking)
+      if (night >= 4) {
+        pool.push('thunder_flash');
+      }
+
       if (!ctx.lightOut) {
         pool.push('light_flicker');
         if (night >= 3 && !ctx.hasCustomer) {
           pool.push('power_dip');
+        }
+        if (night >= 7 && !ctx.hasCustomer) {
+          pool.push('power_blackout');
         }
       }
 
@@ -104,46 +103,83 @@
         case 'phantom_knock':
           return {
             toast: 'Tiga ketukan terdengar jelas di kaca jendela... tapi tidak ada siapa pun di luar.',
+            sanityDelta: -7,
             kind: 'horror'
           };
         case 'light_flicker':
           return {
             toast: 'Lampu neon di atas kepala mendengung dan berkedip dingin.',
+            sanityDelta: -5,
+            lightBased: true,
             kind: 'horror'
           };
         case 'power_dip':
           return {
-            toast: 'Lampu neon kios redup mendadak! Tekan saklar Lampu Kios [F] untuk menormalkannya.',
+            toast: 'Lampu neon kios redup mendadak! Tekan saklar Lampu Kios [F] untuk menyalakan kembali.',
+            sanityDelta: -8,
+            lightBased: true,
+            kind: 'horror'
+          };
+        case 'power_blackout':
+          return {
+            toast: 'MATI LAMPU TOTAL! Kedua lampu padam—segera reset saklar Lampu Kios [F]!',
+            sanityDelta: -14,
+            lightBased: true,
+            kind: 'horror'
+          };
+        case 'thunder_flash':
+          return {
+            toast: 'Kilat petir menyambar langit Jalan Melati, menyingkap bayangan kosong di seberang.',
+            sanityDelta: -6,
+            lightBased: true,
             kind: 'horror'
           };
         case 'distant_silhouette':
           return {
             toast: 'Bayangan tinggi berdiri diam di bawah tiang lampu seberang jalan... lalu melangkah ke kegelapan.',
+            sanityDelta: -7,
             kind: 'horror'
           };
         case 'footsteps_circle':
           return {
             toast: 'Suara langkah kaki basah berjalan pelan mengitari dinding samping kios.',
+            sanityDelta: -8,
             kind: 'horror'
           };
         case 'handprint_glass':
           return {
             toast: 'Bekas telapak tangan dingin perlahan muncul di permukaan kaca berembun.',
+            sanityDelta: -9,
             kind: 'horror'
           };
         case 'vanishing_glimpse':
           return {
             toast: 'Saat lampu berkedip, sesosok wajah sempat berdiri tepat di depan jendela—detik berikutnya sudah lenyap!',
+            sanityDelta: -12,
+            kind: 'horror'
+          };
+        case 'vent_whisper':
+          return {
+            toast: 'Bisikan dingin keluar dari ventilasi belakang freezer: "...buka... kacanya..."',
+            sanityDelta: -11,
+            kind: 'horror'
+          };
+        case 'latch_rattle':
+          return {
+            toast: 'KREK-KREK! Seseorang mencoba menggeser paksa kaca dari luar! Aktifkan Kunci Ganda [L]!',
+            sanityDelta: -10,
             kind: 'horror'
           };
         case 'creepy_call':
           return {
             toast: 'Telepon merah berdering keras dari nomor tidak dikenal...',
+            sanityDelta: -4,
             kind: 'horror'
           };
         default:
           return {
             toast: 'Angin dingin menyusup lewat celah kusen jendela.',
+            sanityDelta: -3,
             kind: 'normal'
           };
       }

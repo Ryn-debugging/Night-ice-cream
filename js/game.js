@@ -1,14 +1,18 @@
 /* ==========================================================================
-   NIGHT SHIFT: ICE CREAM — Core Game State Machine
-   Orchestrates 5-night shifts, clock progression, window control, ice cream
-   serving, observation & clues, phone calls, horror events, intrusion defense,
-   shift summaries, endings, and localStorage saves.
+   NIGHT SHIFT: ICE CREAM v2.0.0 — Core Game State Machine
+   Orchestrates 10 nights, composure (Ketenangan), coffee refills, toppings,
+   CCTV Halte check, reinforced deadbolt lock, latch-rattle defense, kiosk
+   upgrade shop, 14 clues, Night 5 mid-climax, Night 10 true climax, and
+   5 ending outcomes.
    ========================================================================== */
 
 (function (global) {
   'use strict';
 
   const NS = (global.NightShift = global.NightShift || {});
+  const MAX_NIGHTS = 10;
+  const SECRET_CLUE_THRESHOLD = 9;
+  const COFFEE_REFILL_COST = 25000;
 
   function formatRupiah(amount) {
     const val = Math.max(0, Math.floor(amount || 0));
@@ -35,12 +39,19 @@
 
       this.screen = 'menu'; // 'menu' | 'intro' | 'gameplay' | 'summary' | 'ending'
       this.paused = false;
+      this.modalLocked = false;
       this.introIndex = 0;
 
-      // Persistent run progress
+      // Persistent 10-night run progress
       this.night = 1;
       this.totalMoney = 0;
       this.clues = [];
+      this.upgrades = {
+        halogen: false,
+        reinforcedGlass: false,
+        stabilizer: false,
+        coffeeThermos: false
+      };
       this.stats = {
         totalServed: 0,
         totalThreatsRefused: 0,
@@ -58,11 +69,23 @@
       this.observedAspects = { face: false, clothes: false, probe: false };
       this.observeOpen = false;
 
+      // Kiosk interactive state
       this.windowOpen = false;
+      this.deadboltLocked = false;
       this.porchLightOn = true;
       this.lightOut = false;
+      this.cctvActive = false;
+      this.cctvTimer = 0;
+      this.reinforcedGuardUsed = false;
 
+      // Composure / Sanity & Coffee
+      this.sanity = 100;
+      this.freeCoffeeLeft = 0;
+
+      // Cup builder (flavors + v2.0 topping)
       this.cupScoops = [];
+      this.cupTopping = null;
+
       this.strikes = 0;
       this.maxStrikes = 3;
 
@@ -74,15 +97,18 @@
         cluesFoundThisNight: []
       };
 
-      // Clock & timers
-      this.clockFloat = 23.0; // 23.0 -> 28.0 (04:00) or 29.0 (05:00)
+      // Timers
+      this.clockFloat = 23.0;
       this.targetEndFloat = 28.0;
       this.nextCustomerTimer = 3.5;
       this.leavingTimer = 0;
+      this.customerWaitTimer = 0;
+      this.impatientWarned = false;
 
-      // Intrusion emergency timer
+      // Intrusion & latch rattle defense
       this.intrusionTimeLeft = 0;
       this.intrusionDuration = 3.6;
+      this.latchThreatTimer = 0;
 
       // Phone state
       this.pendingPhoneCall = null;
@@ -90,18 +116,19 @@
       this.phoneRingTimeout = 0;
       this.activePhoneCall = null;
       this.scheduledMidNightCallTriggered = false;
+      this._delayedCall = null;
+      this._phoneDelayTimer = 0;
 
       // Dialogue typewriter queue
       this.dialogueSpeaker = 'Kios Sora Dingin';
       this.dialogueTag = 'Shift Malam';
-      this.dialogueStyle = 'normal'; // 'normal' | 'observation' | 'phone' | 'horror'
+      this.dialogueStyle = 'normal';
       this.dialogueQueue = [];
       this.currentFullText = '';
       this.displayedChars = 0;
       this.typeTimer = 0;
       this.onDialogueExhausted = null;
 
-      // Toast banner timer
       this.toastTimer = 0;
     }
 
@@ -127,16 +154,21 @@
       NS.Audio.stopHeartbeat();
       NS.Audio.setTension(0.08);
 
-      this.renderer.state.mode = 'menu';
-      this.renderer.state.customer = null;
-      this.renderer.state.customerVisible = false;
-      this.renderer.state.windowTarget = 0;
-      this.renderer.state.dangerLevel = 0;
-      this.renderer.state.phoneRinging = false;
-      this.renderer.state.lightOut = false;
-      this.renderer.state.cupScoops = [];
-      this.renderer.state.rainIntensity = 0.55;
-      this.renderer.state.fogDensity = 0.38;
+      const rs = this.renderer.state;
+      rs.mode = 'menu';
+      rs.customer = null;
+      rs.customerVisible = false;
+      rs.windowTarget = 0;
+      rs.deadboltLocked = false;
+      rs.cctvActive = false;
+      rs.dangerLevel = 0;
+      rs.phoneRinging = false;
+      rs.lightOut = false;
+      rs.cupScoops = [];
+      rs.cupTopping = null;
+      rs.sanity = 100;
+      rs.rainIntensity = 0.55;
+      rs.fogDensity = 0.38;
 
       this.meta = NS.Save.loadMeta();
       const saved = NS.Save.loadProgress();
@@ -152,6 +184,12 @@
       this.night = 1;
       this.totalMoney = 0;
       this.clues = [];
+      this.upgrades = {
+        halogen: false,
+        reinforcedGlass: false,
+        stabilizer: false,
+        coffeeThermos: false
+      };
       this.stats = {
         totalServed: 0,
         totalThreatsRefused: 0,
@@ -179,6 +217,12 @@
       this.night = saved.night;
       this.totalMoney = saved.totalMoney;
       this.clues = saved.clues.slice();
+      this.upgrades = Object.assign({
+        halogen: false,
+        reinforcedGlass: false,
+        stabilizer: false,
+        coffeeThermos: false
+      }, saved.upgrades || {});
       this.stats = Object.assign({}, saved.stats);
 
       this.startNight(this.night);
@@ -214,12 +258,12 @@
     }
 
     // =========================================================================
-    // NIGHT INITIALIZATION
+    // NIGHT INITIALIZATION (NIGHTS 1..10)
     // =========================================================================
 
     startNight(nightNumber) {
-      this.night = Math.max(1, Math.min(5, nightNumber));
-      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
+      this.night = Math.max(1, Math.min(MAX_NIGHTS, nightNumber));
+      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night] || NS.Dialogue.NIGHT_CONFIGS[1];
 
       this.paused = false;
       this.screen = 'gameplay';
@@ -231,9 +275,18 @@
       this.observeOpen = false;
 
       this.windowOpen = false;
+      this.deadboltLocked = false;
       this.porchLightOn = true;
       this.lightOut = false;
+      this.cctvActive = false;
+      this.cctvTimer = 0;
+      this.reinforcedGuardUsed = false;
+
+      this.sanity = 100;
+      this.freeCoffeeLeft = this.upgrades.coffeeThermos ? 2 : (this.night >= 4 ? 1 : 0);
+
       this.cupScoops = [];
+      this.cupTopping = null;
       this.strikes = 0;
 
       this.shiftStats = {
@@ -244,7 +297,6 @@
         cluesFoundThisNight: []
       };
 
-      // Hours represented continuously past midnight (e.g. 23.0 -> 28.0 = 04:00, 29.0 = 05:00)
       this.clockFloat = cfg.startHour;
       this.targetEndFloat = cfg.endHour < cfg.startHour ? cfg.endHour + 24 : cfg.endHour;
 
@@ -253,9 +305,14 @@
       this.phoneRingTimeout = 0;
       this.activePhoneCall = null;
       this.scheduledMidNightCallTriggered = false;
+      this._delayedCall = null;
+      this._phoneDelayTimer = 0;
 
       this.intrusionTimeLeft = 0;
+      this.latchThreatTimer = 0;
       this.leavingTimer = 0;
+      this.customerWaitTimer = 0;
+      this.impatientWarned = false;
       this.nextCustomerTimer = 5.0;
 
       NS.Events.resetForNight(this.night);
@@ -265,7 +322,6 @@
       NS.Audio.setWindowMuffle(false);
       NS.Audio.setTension(cfg.ambientTension);
 
-      // Reset renderer for this night
       const rs = this.renderer.state;
       rs.mode = 'gameplay';
       rs.night = this.night;
@@ -273,7 +329,10 @@
       rs.fogDensity = cfg.fogDensity;
       rs.windowTarget = 0;
       rs.windowSlide = 0;
+      rs.deadboltLocked = false;
+      rs.cctvActive = false;
       rs.porchLightOn = true;
+      rs.halogenUpgrade = Boolean(this.upgrades.halogen);
       rs.lightOut = false;
       rs.phoneRinging = false;
       rs.customer = null;
@@ -281,9 +340,13 @@
       rs.customerAlpha = 0;
       rs.customerLunge = 0;
       rs.dangerLevel = 0;
+      rs.sanity = 100;
       rs.handprintAlpha = 0;
       rs.vanishingAlpha = 0;
+      rs.latchRattleTimer = 0;
+      rs.thunderAlpha = 0;
       rs.cupScoops = [];
+      rs.cupTopping = null;
 
       this.ui.showScreen('gameplay');
       this.toastTimer = 0;
@@ -291,24 +354,28 @@
       this.ui.setDangerBanner(false, 0, 1);
 
       this.setDialogue(
-        `Malam ${this.night} — ${cfg.title}`,
+        `Malam ${this.night} / ${MAX_NIGHTS} — ${cfg.title}`,
         'Awal Shift',
         [cfg.introNote],
         'normal'
       );
 
-      // Schedule opening shift phone briefing cleanly
       const introCallMap = {
         1: 'night1_boss',
         2: 'night2_boss',
         3: 'night3_boss',
         4: 'night4_warning',
-        5: 'night5_police'
+        5: 'night5_police',
+        6: 'night6_boss',
+        7: 'night7_storm',
+        8: 'night8_tape',
+        9: 'night9_police',
+        10: 'night10_police'
       };
       const openingCallId = introCallMap[this.night];
       if (openingCallId && NS.Dialogue.PHONE_CALLS[openingCallId]) {
-        this._queuePhoneRing(NS.Dialogue.PHONE_CALLS[openingCallId], 2.0);
-        this.nextCustomerTimer = 8.5;
+        this._queuePhoneRing(NS.Dialogue.PHONE_CALLS[openingCallId], 1.8);
+        this.nextCustomerTimer = 8.0;
       }
 
       this._syncHUD();
@@ -324,7 +391,7 @@
 
       if (this.screen !== 'gameplay' || this.paused || this.modalLocked) return;
 
-      // Update toast timeout
+      // Toast decay
       if (this.toastTimer > 0) {
         this.toastTimer -= dt;
         if (this.toastTimer <= 0) {
@@ -332,10 +399,44 @@
         }
       }
 
-      // Update dialogue typewriter
+      // CCTV auto-close timer
+      if (this.cctvActive) {
+        this.cctvTimer -= dt;
+        if (this.cctvTimer <= 0) {
+          this.cctvActive = false;
+          this.renderer.state.cctvActive = false;
+          this._syncHUD();
+        }
+      }
+
+      // Passive sanity drain during unfixed power outage
+      if (this.lightOut && this.phase !== 'intrusion') {
+        const drainRate = this.upgrades.stabilizer ? 0.9 : 1.9;
+        this._adjustSanity(-drainRate * dt, true);
+        if (this.screen !== 'gameplay') return;
+      }
+
+      // Latch rattle active threat timer (Nights 6-10)
+      if (this.latchThreatTimer > 0) {
+        this.latchThreatTimer -= dt;
+        if (this.deadboltLocked) {
+          this.latchThreatTimer = 0;
+          this.renderer.state.latchRattleTimer = 0;
+          this.showToast('Kunci Ganda menahan paksa jendela dari luar! Suara langkah menjauh.', 'clue');
+          this._syncHUD();
+        } else if (this.latchThreatTimer <= 0) {
+          this.renderer.state.latchRattleTimer = 0;
+          this.showToast('Grendel kaca nyaris terlepas! Tekanan mental meningkat tajam!', 'horror');
+          this._adjustSanity(-18, false);
+          if (this.screen !== 'gameplay') return;
+          this.renderer.triggerCameraShake(10);
+          NS.Audio.playStinger(true);
+        }
+      }
+
       this._updateTypewriter(dt);
 
-      // Delayed phone ring trigger
+      // Delayed opening phone call
       if (this._phoneDelayTimer > 0) {
         this._phoneDelayTimer -= dt;
         if (this._phoneDelayTimer <= 0 && this._delayedCall) {
@@ -345,7 +446,7 @@
         }
       }
 
-      // Active ringing phone auto-timeout so game never stalls
+      // Phone ring auto-timeout
       if (this.phoneRinging) {
         this.phoneRingTimeout -= dt;
         if (this.phoneRingTimeout <= 0) {
@@ -354,14 +455,13 @@
         }
       }
 
-      // Smooth clock progression toward milestone based on customer index
+      // Clock progression
       const totalCust = Math.max(1, this.schedule.length);
       const span = this.targetEndFloat - 23.0;
       const targetMilestone = 23.0 + (this.customerIndex / totalCust) * span;
       if (this.clockFloat < targetMilestone) {
         this.clockFloat = Math.min(targetMilestone, this.clockFloat + dt * 0.14);
       } else if (this.phase === 'waiting' || this.phase === 'customer_present') {
-        // Gentle real-time tick (capped slightly before next milestone)
         const softCap = Math.min(this.targetEndFloat - 0.08, 23.0 + ((this.customerIndex + 0.85) / totalCust) * span);
         if (this.clockFloat < softCap) {
           this.clockFloat += dt * 0.012;
@@ -371,11 +471,23 @@
 
       // Phase-specific timers
       if (this.phase === 'waiting') {
-        // Don't spawn next customer while player is actively reading a phone call or while an opening call is still ringing
         if (!this.phoneRinging) {
           this.nextCustomerTimer -= dt;
           if (this.nextCustomerTimer <= 0) {
             this._spawnNextCustomer();
+          }
+        }
+      } else if (this.phase === 'customer_present' && this.currentCustomer) {
+        // Subtle Patience System for innocent customers on Nights 3-10
+        if (this.night >= 3 && this.currentCustomer.threatLevel === 'safe') {
+          const mult = this.deadboltLocked ? 1.35 : 1.0;
+          this.customerWaitTimer += dt * mult;
+          if (this.customerWaitTimer > 28 && !this.impatientWarned) {
+            this.impatientWarned = true;
+            this.showToast(`${this.currentCustomer.name} tampak mulai tidak sabar menunggu di tengah hujan...`, 'normal');
+          } else if (this.customerWaitTimer > 46) {
+            this._handleCustomerImpatientLeave();
+            return;
           }
         }
       } else if (this.phase === 'customer_leaving') {
@@ -396,7 +508,7 @@
         }
       }
 
-      // Random horror events engine (throttled & non-blocking)
+      // Random horror events
       NS.Events.update(dt, {
         night: this.night,
         phase: this.phase,
@@ -410,11 +522,140 @@
     }
 
     // =========================================================================
+    // COMPOSURE (KETENANGAN) & COFFEE REFILLS
+    // =========================================================================
+
+    _adjustSanity(delta, silentHud) {
+      const prev = Math.round(this.sanity);
+      this.sanity = Math.max(0, Math.min(100, this.sanity + delta));
+      this.renderer.state.sanity = this.sanity;
+
+      if (this.sanity <= 0) {
+        this._triggerEnding('bad_panic');
+        return;
+      }
+
+      if (!silentHud || Math.round(this.sanity) !== prev) {
+        this.ui.updateSanity(Math.round(this.sanity));
+      }
+    }
+
+    drinkCoffee() {
+      if (this.screen !== 'gameplay' || this.paused) return;
+      if (this.phase === 'intrusion') return;
+
+      if (this.sanity >= 96) {
+        NS.Audio.playUiClick();
+        this.showToast('Ketenanganmu masih penuh. Simpan kopi untuk saat genting.', 'normal');
+        return;
+      }
+
+      if (this.freeCoffeeLeft > 0) {
+        this.freeCoffeeLeft -= 1;
+        NS.Audio.playCoffeeSip();
+        this._adjustSanity(32, false);
+        this.showToast(`Meneguk Kopi Hangat gratis (+32% Ketenangan). Sisa gratis: ${this.freeCoffeeLeft}`, 'clue');
+        this._syncHUD();
+        return;
+      }
+
+      if (this.totalMoney < COFFEE_REFILL_COST) {
+        NS.Audio.playErrorOrder();
+        this.showToast(`Kas belum cukup untuk seduh Kopi Hangat (${formatRupiah(COFFEE_REFILL_COST)}).`, 'horror');
+        return;
+      }
+
+      this.totalMoney -= COFFEE_REFILL_COST;
+      NS.Audio.playCoffeeSip();
+      this._adjustSanity(32, false);
+      this.showToast(`Menyeduh Kopi Hangat (-${formatRupiah(COFFEE_REFILL_COST)}, +32% Ketenangan).`, 'clue');
+      this._syncHUD();
+    }
+
+    // =========================================================================
+    // CCTV HALTE [V] & REINFORCED DEADBOLT [L]
+    // =========================================================================
+
+    toggleCctv() {
+      if (this.screen !== 'gameplay' || this.paused) return;
+      if (this.phase === 'intrusion') return;
+
+      this.cctvActive = !this.cctvActive;
+      this.renderer.state.cctvActive = this.cctvActive;
+      NS.Audio.playCctvToggle(this.cctvActive);
+
+      if (this.cctvActive) {
+        this.cctvTimer = 5.0;
+        if (this.currentCustomer && this.phase === 'customer_present') {
+          const note = this.currentCustomer.cctvNote || 'CCTV Halte: Tidak terlihat anomali jelas di kejauhan.';
+          this.setDialogue(
+            `CCTV Halte — ${this.currentCustomer.name}`,
+            'CAM-01 NIGHT VISION',
+            [note],
+            'observation'
+          );
+          if (this.currentCustomer.cctvClueId) {
+            this.unlockClue(this.currentCustomer.cctvClueId);
+          }
+        } else {
+          const msg = this.renderer.state.distantSilhouette.active
+            ? 'CCTV Halte: PERINGATAN! Terdeteksi sosok berdiri diam di dekat tiang lampu halte!'
+            : 'CCTV Halte: Jalan Melati dan halte tua tampak sepi di bawah hujan.';
+          this.showToast(msg, this.renderer.state.distantSilhouette.active ? 'horror' : 'normal');
+        }
+      }
+      this._syncHUD();
+    }
+
+    toggleDeadbolt() {
+      if (this.screen !== 'gameplay' || this.paused) return;
+      if (this.phase === 'intrusion') {
+        this._slamWindowInIntrusion();
+        return;
+      }
+
+      if (this.windowOpen) {
+        // Close window AND engage deadbolt immediately for snappy defense!
+        this.windowOpen = false;
+        this.renderer.state.windowTarget = 0;
+        this.deadboltLocked = true;
+        this.renderer.state.deadboltLocked = true;
+        this.cupScoops = [];
+        this.cupTopping = null;
+        this.renderer.state.cupScoops = [];
+        this.renderer.state.cupTopping = null;
+        NS.Audio.playWindowSlide(false, false);
+        NS.Audio.playDeadbolt(true);
+        this.showToast('Jendela ditutup dan Kunci Ganda diaktifkan.', 'normal');
+        this._syncHUD();
+        return;
+      }
+
+      this.deadboltLocked = !this.deadboltLocked;
+      this.renderer.state.deadboltLocked = this.deadboltLocked;
+      NS.Audio.playDeadbolt(this.deadboltLocked);
+
+      if (this.deadboltLocked && this.latchThreatTimer > 0) {
+        this.latchThreatTimer = 0;
+        this.renderer.state.latchRattleTimer = 0;
+        this.showToast('Kunci Ganda menahan paksa jendela dari luar! Kamu aman!', 'clue');
+      } else {
+        this.showToast(
+          this.deadboltLocked
+            ? 'Kunci Ganda AKTIF — jendela tidak bisa dibuka atau digeser paksa.'
+            : 'Kunci Ganda dilepas.',
+          'normal'
+        );
+      }
+      this._syncHUD();
+    }
+
+    // =========================================================================
     // CUSTOMER LIFECYCLE
     // =========================================================================
 
     _spawnNextCustomer() {
-      // Mid-night special creepy phone call on Night 3 right after Customer 2!
+      // Mid-night special creepy phone call on Night 3
       if (this.night === 3 && this.customerIndex === 2 && !this.scheduledMidNightCallTriggered) {
         this.scheduledMidNightCallTriggered = true;
         this._startPhoneRinging(NS.Dialogue.PHONE_CALLS.night3_creepy);
@@ -434,23 +675,25 @@
       this.phase = 'customer_present';
       this.observedAspects = { face: false, clothes: false, probe: false };
       this.observeOpen = false;
+      this.customerWaitTimer = 0;
+      this.impatientWarned = false;
       this.cupScoops = [];
+      this.cupTopping = null;
       this.renderer.state.cupScoops = [];
+      this.renderer.state.cupTopping = null;
 
-      // Night 5 climax snaps clock to dramatic 03:00!
-      if (cust.threatLevel === 'climax') {
+      if (cust.threatLevel === 'climax' || cust.threatLevel === 'mid_climax') {
         this.clockFloat = Math.max(this.clockFloat, 27.0); // 03:00
         NS.Audio.setTension(0.95);
         NS.Audio.playStinger(true);
       } else if (cust.threatLevel === 'danger' || cust.threatLevel === 'eerie') {
         const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
-        NS.Audio.setTension(Math.min(0.85, cfg.ambientTension + 0.35));
+        NS.Audio.setTension(Math.min(0.88, cfg.ambientTension + 0.3));
       } else {
         const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
         NS.Audio.setTension(cfg.ambientTension);
       }
 
-      // Visual & audio entrance
       this.renderer.state.customer = cust;
       this.renderer.state.customerVisible = true;
       this.renderer.state.customerLunge = 0;
@@ -463,9 +706,8 @@
         }
       }, 240);
 
-      // If player carelessly left window open before a DANGER customer arrived!
-      if (this.windowOpen && cust.threatLevel === 'danger') {
-        this.showToast('Jendela masih terbuka saat sosok mencurigakan mendekat!', 'horror');
+      if (this.windowOpen && (cust.threatLevel === 'danger' || cust.threatLevel === 'mid_climax')) {
+        this.showToast('Jendela masih terbuka saat sosok berbahaya mendekat!', 'horror');
         this._triggerIntrusion(cust);
         this._syncHUD();
         return;
@@ -480,9 +722,34 @@
         `${cust.name} — ${cust.label}`,
         this.windowOpen ? 'Jendela Terbuka' : 'Di Balik Kaca',
         cust.greeting.slice(),
-        cust.threatLevel === 'climax' ? 'horror' : 'normal'
+        cust.threatLevel === 'climax' || cust.threatLevel === 'mid_climax' ? 'horror' : 'normal'
       );
 
+      this._syncHUD();
+    }
+
+    _handleCustomerImpatientLeave() {
+      const cust = this.currentCustomer;
+      if (!cust) return;
+
+      this.strikes += 1;
+      this.stats.totalInnocentRefused += 1;
+      NS.Audio.playErrorOrder();
+      this.showToast(`${cust.name} pergi karena menunggu terlalu lama! Teguran Bos: ${this.strikes}/${this.maxStrikes}`, 'horror');
+
+      if (this.strikes >= this.maxStrikes) {
+        this.phase = 'customer_leaving';
+        this.leavingTimer = 2.2;
+        this.setDialogue(cust.name, 'Pergi Kecewa', ['Lama sekali sih pelayanannya! Saya pergi saja!'], 'horror', () => {
+          this._triggerEnding('bad_fired');
+        });
+        this._syncHUD();
+        return;
+      }
+
+      this.phase = 'customer_leaving';
+      this.leavingTimer = 2.0;
+      this.setDialogue(cust.name, 'Menunggu Terlalu Lama', ['Aduh kelamaan nunggu di tengah hujan, saya balik saja deh Mas!'], 'normal');
       this._syncHUD();
     }
 
@@ -493,7 +760,6 @@
     toggleWindow() {
       if (this.screen !== 'gameplay' || this.paused) return;
 
-      // Emergency close during active intrusion!
       if (this.phase === 'intrusion') {
         this._slamWindowInIntrusion();
         return;
@@ -509,20 +775,30 @@
         this.renderer.state.windowTarget = 0;
         NS.Audio.playWindowSlide(false, false);
         this.cupScoops = [];
+        this.cupTopping = null;
         this.renderer.state.cupScoops = [];
+        this.renderer.state.cupTopping = null;
         this._syncHUD();
         return;
       }
 
-      // Opening the window
+      // Guard against accidental opening while Deadbolt is engaged!
+      if (this.deadboltLocked) {
+        NS.Audio.playDeadbolt(true);
+        this.showToast('Kunci Ganda aktif! Tekan Kunci Ganda [L] untuk melepas kunci sebelum membuka kaca.', 'normal');
+        return;
+      }
+
       this.windowOpen = true;
       this.observeOpen = false;
+      this.cctvActive = false;
+      this.renderer.state.cctvActive = false;
       this.renderer.state.windowTarget = 1;
       NS.Audio.playWindowSlide(true, false);
 
       if (this.phase === 'customer_present' && this.currentCustomer) {
         const cust = this.currentCustomer;
-        if (cust.threatLevel === 'danger') {
+        if (cust.threatLevel === 'danger' || cust.threatLevel === 'mid_climax') {
           this._triggerIntrusion(cust);
           return;
         }
@@ -539,7 +815,7 @@
           return;
         }
         NS.Audio.playBell();
-        this.showToast(`Jendela dibuka. Siapkan pesanan: ${cust.orderText}`, 'normal');
+        this.showToast(`Jendela dibuka. Siapkan: ${cust.orderText}`, 'normal');
       } else {
         this.showToast('Jendela terbuka sementara tidak ada pelanggan. Sebaiknya tutup kembali.', 'horror');
       }
@@ -550,8 +826,14 @@
     _triggerIntrusion(cust) {
       this.phase = 'intrusion';
       this.observeOpen = false;
-      this.intrusionDuration = Math.max(2.7, 3.8 - (this.night - 2) * 0.25);
+      this.cctvActive = false;
+      this.renderer.state.cctvActive = false;
+
+      const baseDur = Math.max(2.6, 3.85 - (this.night - 2) * 0.14);
+      const halogenBonus = this.upgrades.halogen ? 0.9 : 0;
+      this.intrusionDuration = baseDur + halogenBonus;
       this.intrusionTimeLeft = this.intrusionDuration;
+
       this.renderer.state.dangerLevel = 0.65;
       this.renderer.triggerCameraShake(11);
       this.ui.triggerFlash('red');
@@ -588,6 +870,10 @@
       this.shiftStats.threatsRefused += 1;
       this.stats.totalThreatsRefused += 1;
 
+      const sanityHit = this.upgrades.halogen ? -10 : -18;
+      this._adjustSanity(sanityHit, false);
+      if (this.screen !== 'gameplay') return;
+
       if (cust && cust.clueOnRefuse) {
         this.unlockClue(cust.clueOnRefuse);
       }
@@ -602,7 +888,7 @@
         ],
         'horror'
       );
-      this.showToast('Berhasil membanting tutup jendela tepat waktu!', 'clue');
+      this.showToast(`Berhasil membanting tutup jendela tepat waktu! (${sanityHit}% Ketenangan)`, 'clue');
       this._syncHUD();
     }
 
@@ -632,7 +918,6 @@
       let clueId = null;
 
       if (aspect === 'probe') {
-        // Testing with question + porch light flash!
         this.renderer.triggerPorchFlash();
         NS.Audio.playLightSwitch();
         const probeObj = cust.observations.probe;
@@ -640,9 +925,10 @@
         clueId = typeof probeObj === 'object' ? probeObj.clueId : null;
       } else {
         text = cust.observations[aspect];
-        // Also reveal clothes-specific clues if player inspects clothes carefully
         if (aspect === 'clothes' && cust.id === 'n2_budi_threat') clueId = 'clue_dry_coat';
         if (aspect === 'clothes' && cust.id === 'n4_inspector_threat') clueId = 'clue_inspector_lie';
+        if (aspect === 'clothes' && cust.id === 'n5_arman_mid') clueId = 'clue_locker_key';
+        if (aspect === 'clothes' && cust.id === 'n6_uniform_threat') clueId = 'clue_missing_uniform';
         if (aspect === 'face' && cust.id === 'n1_stranger') clueId = 'clue_dimas_query';
       }
 
@@ -675,14 +961,14 @@
       const clue = NS.Dialogue.CLUES[clueId];
 
       NS.Audio.playClueFound();
-      this.showToast(`Petunjuk Baru Dicatat: "${clue.title}" (Tekan J untuk membaca)`, 'clue');
+      this.showToast(`Petunjuk Baru Dicatat: "${clue.title}"`, 'clue');
       this.ui.pulseClueButton();
       this._syncHUD();
       return true;
     }
 
     // =========================================================================
-    // REFUSE SERVICE & NIGHT 5 SECRET CONFRONTATION
+    // REFUSE SERVICE & NIGHT 10 SECRET CONFRONTATION
     // =========================================================================
 
     refuseCustomer() {
@@ -699,13 +985,13 @@
         NS.Audio.playWindowSlide(false, false);
       }
 
-      // Night 5 Climax: Refusing Arman securely survives until 05:00 dawn -> GOOD ENDING!
+      // Night 10 True Climax: Refusing Arman securely survives until 05:00 dawn -> GOOD ENDING!
       if (cust.threatLevel === 'climax') {
         this.phase = 'customer_leaving';
         this.renderer.state.customerVisible = false;
         this.setDialogue(
           'Jendela Terkunci Hingga Pagi',
-          'Malam 5 — 05:00',
+          'Malam 10 — 05:00',
           [cust.refuseResponse],
           'normal',
           () => {
@@ -713,6 +999,26 @@
           }
         );
         this.leavingTimer = 3.2;
+        this._syncHUD();
+        return;
+      }
+
+      // Night 5 Mid-Climax: Police patrol drives Arman away & he drops Dimas's locker key!
+      if (cust.threatLevel === 'mid_climax') {
+        this.shiftStats.threatsRefused += 1;
+        this.stats.totalThreatsRefused += 1;
+        NS.Audio.playSiren();
+        if (cust.clueOnRefuse) {
+          this.unlockClue(cust.clueOnRefuse);
+        }
+        this.phase = 'customer_leaving';
+        this.leavingTimer = 3.0;
+        this.setDialogue(
+          'Patroli Melintas — Babak 1 Berakhir',
+          'Malam 5 — 03:10',
+          [cust.refuseResponse],
+          'observation'
+        );
         this._syncHUD();
         return;
       }
@@ -750,7 +1056,6 @@
           this.unlockClue(cust.clueOnRefuse);
         }
       } else if (cust.threatLevel === 'eerie') {
-        // Night 1 eerie visitor — refusing gives no strike & unlocks clue!
         this.shiftStats.threatsRefused += 1;
         this.stats.totalThreatsRefused += 1;
         if (cust.clueOnRefuse) {
@@ -773,9 +1078,12 @@
       if (this.screen !== 'gameplay' || this.paused) return;
       if (this.phase !== 'customer_present' || !this.currentCustomer) return;
       if (this.currentCustomer.threatLevel !== 'climax') return;
-      if (this.windowOpen || this.clues.length < 5) return;
+      if (this.windowOpen || this.clues.length < SECRET_CLUE_THRESHOLD) return;
 
       this.observeOpen = false;
+      this.deadboltLocked = true;
+      this.renderer.state.deadboltLocked = true;
+      NS.Audio.playDeadbolt(true);
       NS.Audio.playPhonePickup(false);
       NS.Audio.playSiren();
       this.renderer.triggerPorchFlash();
@@ -784,11 +1092,11 @@
       this.phase = 'customer_leaving';
       this.leavingTimer = 3.8;
       this.setDialogue(
-        'Raka (Melalui Kaca Terkunci)',
-        'Konfrontasi Akhir',
+        'Raka (Melalui Kaca Terkunci Ganda)',
+        'Operasi Penyergapan 03:00',
         [
-          '"Aku tahu siapa kamu, Arman! Mantan penjaga halte Melati. Catatan Dimas, mantel keringmu, kartu namamu—semuanya sudah kuserahkan ke Bripka Danu lewat telepon barusan!"',
-          'Wajah dingin di balik kaca membeku untuk pertama kalinya. Dari balik kabut tebal Jalan Melati, raungan sirene dan kilatan lampu biru-merah polisi melaju cepat ke arah kios!'
+          '"Berhenti di situ, Arman! Mantan penjaga halte Melati—catatan Dimas, seragam curianmu, rekaman suara di ruang genset halte, semua sudah kuserahkan ke Bripka Danu barusan!"',
+          'Wajah dingin di balik kaca akhirnya pecah oleh kepanikan. Dari balik kabut tebal Jalan Melati, dua mobil tim sergap polisi meluncur dengan kilatan lampu biru-merah mengepung kios!'
         ],
         'observation',
         () => {
@@ -799,7 +1107,7 @@
     }
 
     // =========================================================================
-    // ICE CREAM ORDER SERVING (F-03)
+    // ICE CREAM SCOOPS & TOPPINGS (F-03 + v2.0)
     // =========================================================================
 
     addScoop(flavorId) {
@@ -809,7 +1117,7 @@
 
       const maxScoops = Math.max(2, this.currentCustomer.order.length || 1);
       if (this.cupScoops.length >= maxScoops) {
-        this.showToast(`Gelas sudah penuh (${maxScoops} scoop). Tekan Serahkan atau Kosongkan.`, 'normal');
+        this.showToast(`Gelas sudah penuh (${maxScoops} scoop). Pilih topping atau tekan Serahkan.`, 'normal');
         return;
       }
 
@@ -819,10 +1127,25 @@
       this._syncHUD();
     }
 
+    selectTopping(toppingId) {
+      if (this.screen !== 'gameplay' || this.paused) return;
+      if (this.phase !== 'customer_present' || !this.windowOpen || !this.currentCustomer) return;
+      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
+      if (!cfg || !cfg.toppingsUnlocked) return;
+      if (!NS.Customers.TOPPINGS[toppingId]) return;
+
+      this.cupTopping = this.cupTopping === toppingId ? null : toppingId;
+      this.renderer.state.cupTopping = this.cupTopping;
+      NS.Audio.playScoop();
+      this._syncHUD();
+    }
+
     clearCup() {
       if (this.screen !== 'gameplay' || this.paused) return;
       this.cupScoops = [];
+      this.cupTopping = null;
       this.renderer.state.cupScoops = [];
+      this.renderer.state.cupTopping = null;
       NS.Audio.playUiClick();
       this._syncHUD();
     }
@@ -838,17 +1161,26 @@
       const cust = this.currentCustomer;
       const expected = cust.order.slice().sort();
       const actual = this.cupScoops.slice().sort();
-      const isExact = expected.length === actual.length && expected.every((v, i) => v === actual[i]);
+      const flavorsMatch = expected.length === actual.length && expected.every((v, i) => v === actual[i]);
+      const expectedTopping = cust.topping || null;
+      const toppingMatch = expectedTopping === (this.cupTopping || null);
+      const isExact = flavorsMatch && toppingMatch;
 
-      const fullPrice = NS.Customers.calcOrderPrice(cust.order);
+      const fullPrice = NS.Customers.calcOrderPrice(cust.order, expectedTopping);
       let earned = 0;
 
       if (isExact) {
         earned = fullPrice;
         NS.Audio.playCashRegister();
-        this.showToast(`Pesanan tepat! +${formatRupiah(earned)}`, 'clue');
+        this._adjustSanity(8, false);
+        this.showToast(`Pesanan sempurna! +${formatRupiah(earned)} (+8% Ketenangan)`, 'clue');
+      } else if (flavorsMatch && !toppingMatch) {
+        earned = Math.floor(fullPrice * 0.7);
+        this.shiftStats.wrongOrders += 1;
+        this.stats.totalWrongOrders += 1;
+        NS.Audio.playErrorOrder();
+        this.showToast(`Rasa benar, tapi topping keliru! (+${formatRupiah(earned)})`, 'horror');
       } else {
-        // Partial match earns 50%, completely wrong earns 0
         const anyMatch = actual.some((f) => expected.includes(f));
         earned = anyMatch && expected.length > 1 ? Math.floor(fullPrice * 0.5) : 0;
         this.shiftStats.wrongOrders += 1;
@@ -856,7 +1188,7 @@
         NS.Audio.playErrorOrder();
         this.showToast(
           earned > 0
-            ? `Pesanan kurang tepat! Pendapatan berkurang (+${formatRupiah(earned)}).`
+            ? `Pesanan kurang tepat! (+${formatRupiah(earned)})`
             : 'Pesanan salah! Pelanggan kecewa (Rp 0).',
           'horror'
         );
@@ -872,7 +1204,9 @@
       }
 
       this.cupScoops = [];
+      this.cupTopping = null;
       this.renderer.state.cupScoops = [];
+      this.renderer.state.cupTopping = null;
       this.observeOpen = false;
       this.phase = 'customer_leaving';
       this.leavingTimer = 2.4;
@@ -888,7 +1222,6 @@
     }
 
     _finishCustomerDeparture() {
-      // Check if an ending callback was pending
       if (this.onDialogueExhausted) {
         const cb = this.onDialogueExhausted;
         this.onDialogueExhausted = null;
@@ -908,7 +1241,7 @@
       }
 
       this.phase = 'waiting';
-      this.nextCustomerTimer = 3.8 + Math.random() * 2.2;
+      this.nextCustomerTimer = 3.6 + Math.random() * 2.0;
 
       const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
       NS.Audio.setTension(cfg.ambientTension);
@@ -981,6 +1314,8 @@
       if (call.creepy) {
         NS.Audio.playStinger(false);
         this.renderer.triggerFlicker(0.55);
+        this._adjustSanity(-9, false);
+        if (this.screen !== 'gameplay') return;
       }
 
       this.setDialogue(
@@ -1024,10 +1359,12 @@
 
       if (this.lightOut) {
         this.lightOut = false;
+        this.porchLightOn = true;
         this.renderer.state.lightOut = false;
+        this.renderer.state.porchLightOn = true;
         this.renderer.triggerFlicker(0.35);
         NS.Audio.playFlickerBuzz();
-        this.showToast('Lampu neon kios kembali menyala normal.', 'normal');
+        this.showToast('Listrik & lampu neon kios kembali menyala normal.', 'normal');
         this._syncHUD();
         return;
       }
@@ -1041,11 +1378,17 @@
     }
 
     // =========================================================================
-    // RANDOM HORROR EVENTS HANDLER (F-05)
+    // RANDOM HORROR EVENTS HANDLER (F-05 + v2.0)
     // =========================================================================
 
     _handleRandomEvent(eventType) {
       const info = NS.Events.describeEvent(eventType);
+
+      if (info.sanityDelta) {
+        const mult = info.lightBased && this.upgrades.stabilizer ? 0.5 : 1.0;
+        this._adjustSanity(info.sanityDelta * mult, false);
+        if (this.screen !== 'gameplay') return;
+      }
 
       switch (eventType) {
         case 'phantom_knock':
@@ -1064,6 +1407,23 @@
           NS.Audio.playFlickerBuzz();
           this.lightOut = true;
           this.renderer.state.lightOut = true;
+          this.showToast(info.toast, 'horror');
+          break;
+
+        case 'power_blackout':
+          NS.Audio.playThunder();
+          NS.Audio.playFlickerBuzz();
+          this.lightOut = true;
+          this.porchLightOn = false;
+          this.renderer.state.lightOut = true;
+          this.renderer.state.porchLightOn = false;
+          this.renderer.triggerCameraShake(7);
+          this.showToast(info.toast, 'horror');
+          break;
+
+        case 'thunder_flash':
+          NS.Audio.playThunder();
+          this.renderer.triggerThunder();
           this.showToast(info.toast, 'horror');
           break;
 
@@ -1089,6 +1449,26 @@
           NS.Audio.playStinger(false);
           this.renderer.triggerVanishingGlimpse();
           this.showToast(info.toast, 'horror');
+          break;
+
+        case 'vent_whisper':
+          NS.Audio.playStinger(false);
+          this.renderer.triggerFlicker(0.45);
+          this.showToast(info.toast, 'horror');
+          break;
+
+        case 'latch_rattle':
+          NS.Audio.playLatchRattle();
+          this.renderer.triggerLatchRattle(2.2);
+          if (this.deadboltLocked) {
+            this.showToast('KREK! Seseorang mengguncang kaca, tapi Kunci Ganda menahannya kokoh!', 'clue');
+          } else if (this.upgrades.reinforcedGlass && !this.reinforcedGuardUsed) {
+            this.reinforcedGuardUsed = true;
+            this.showToast('KREK! Rel Baja Anti-Pecah otomatis menahan guncangan jendela dari luar!', 'clue');
+          } else {
+            this.latchThreatTimer = 4.2;
+            this.showToast(info.toast, 'horror');
+          }
           break;
 
         case 'creepy_call':
@@ -1118,11 +1498,7 @@
     _popNextDialogueLine() {
       const next = this.dialogueQueue.shift() || '';
       this.currentFullText = next;
-      if (this.settings.textSpeed === 'fast') {
-        this.displayedChars = next.length;
-      } else {
-        this.displayedChars = 0;
-      }
+      this.displayedChars = this.settings.textSpeed === 'fast' ? next.length : 0;
       this.typeTimer = 0;
       this.ui.renderDialogue(
         this.dialogueSpeaker,
@@ -1159,7 +1535,6 @@
     advanceDialogue() {
       if (this.screen !== 'gameplay' || this.paused) return;
 
-      // Finish typing current line instantly first
       if (this.displayedChars < this.currentFullText.length) {
         this.displayedChars = this.currentFullText.length;
         const hasMore = this.dialogueQueue.length > 0 || Boolean(this.onDialogueExhausted);
@@ -1173,14 +1548,12 @@
         return;
       }
 
-      // Advance to next line in queue
       if (this.dialogueQueue.length > 0) {
         NS.Audio.playUiClick();
         this._popNextDialogueLine();
         return;
       }
 
-      // Trigger exhausted callback (e.g., finishing a phone call or climax)
       if (this.onDialogueExhausted) {
         NS.Audio.playUiClick();
         const cb = this.onDialogueExhausted;
@@ -1189,14 +1562,13 @@
         return;
       }
 
-      // Speed up customer departure wait if player clicks/presses Space after reading parting line
       if (this.phase === 'customer_leaving') {
         this.leavingTimer = 0;
       }
     }
 
     // =========================================================================
-    // SHIFT COMPLETION & ENDINGS (F-06, F-07, F-08)
+    // SHIFT COMPLETION, UPGRADE SHOP & ENDINGS
     // =========================================================================
 
     _completeShift() {
@@ -1207,42 +1579,80 @@
 
       this.clockFloat = this.targetEndFloat;
       this.windowOpen = false;
+      this.deadboltLocked = false;
+      this.cctvActive = false;
       this.renderer.state.windowTarget = 0;
+      this.renderer.state.deadboltLocked = false;
+      this.renderer.state.cctvActive = false;
       this.renderer.state.customerVisible = false;
 
-      // Save progress for next night (if night < 5)
-      if (this.night < 5) {
+      if (this.night < MAX_NIGHTS) {
         NS.Save.saveProgress({
           night: this.night + 1,
           totalMoney: this.totalMoney,
           clues: this.clues,
+          upgrades: this.upgrades,
           stats: this.stats
         });
       }
 
       this.screen = 'summary';
-      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
+      this._renderCurrentSummary();
+      this.ui.showScreen('summary');
+    }
+
+    _renderCurrentSummary() {
+      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night] || NS.Dialogue.NIGHT_CONFIGS[1];
       const cluesObj = this.shiftStats.cluesFoundThisNight
         .map((id) => NS.Dialogue.CLUES[id])
         .filter(Boolean);
 
-      this.ui.showScreen('summary');
       this.ui.renderSummary({
         night: this.night,
+        maxNights: MAX_NIGHTS,
         title: cfg.title,
         served: this.shiftStats.served,
         threatsRefused: this.shiftStats.threatsRefused,
         incomeText: formatRupiah(this.shiftStats.income),
+        totalMoney: this.totalMoney,
         totalMoneyText: formatRupiah(this.totalMoney),
         clues: cluesObj,
+        upgrades: this.upgrades,
+        upgradeCatalog: NS.Dialogue.UPGRADES,
         note: cfg.summaryNote,
-        isFinalNight: this.night >= 5
+        isFinalNight: this.night >= MAX_NIGHTS
       });
+    }
+
+    buyUpgrade(upgradeId) {
+      if (this.screen !== 'summary') return false;
+      const item = NS.Dialogue.UPGRADES[upgradeId];
+      if (!item || this.upgrades[upgradeId]) return false;
+      if (this.totalMoney < item.price) {
+        NS.Audio.playErrorOrder();
+        return false;
+      }
+
+      this.totalMoney -= item.price;
+      this.upgrades[upgradeId] = true;
+      NS.Audio.playUpgradeBuy();
+
+      if (this.night < MAX_NIGHTS) {
+        NS.Save.saveProgress({
+          night: this.night + 1,
+          totalMoney: this.totalMoney,
+          clues: this.clues,
+          upgrades: this.upgrades,
+          stats: this.stats
+        });
+      }
+      this._renderCurrentSummary();
+      return true;
     }
 
     proceedNextNight() {
       NS.Audio.playUiClick();
-      if (this.night < 5) {
+      if (this.night < MAX_NIGHTS) {
         this.startNight(this.night + 1);
       } else {
         this._triggerEnding('good');
@@ -1258,7 +1668,6 @@
       this.screen = 'ending';
       this.paused = false;
 
-      // Unlock ending in persistent meta storage
       this.meta = NS.Save.unlockEnding(ending.type);
 
       if (ending.type === 'good') {
@@ -1282,11 +1691,13 @@
       }
 
       this.renderer.state.customerVisible = false;
+      this.renderer.state.cctvActive = false;
       this.renderer.state.windowTarget = ending.type === 'bad' ? 0.65 : 0;
 
       this.ui.showScreen('ending');
       this.ui.renderEnding(ending, {
         nightReached: this.night,
+        maxNights: MAX_NIGHTS,
         totalServed: this.stats.totalServed,
         totalThreatsRefused: this.stats.totalThreatsRefused,
         totalMoneyText: formatRupiah(this.totalMoney),
@@ -1316,26 +1727,34 @@
     }
 
     _syncHUD() {
-      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night];
+      const cfg = NS.Dialogue.NIGHT_CONFIGS[this.night] || NS.Dialogue.NIGHT_CONFIGS[1];
       const cust = this.currentCustomer;
       const inCustomer = this.phase === 'customer_present' && Boolean(cust);
       const inIntrusion = this.phase === 'intrusion';
       const inPhone = this.phase === 'phone_call';
 
       const canServe = inCustomer && this.windowOpen && (cust.threatLevel === 'safe' || cust.threatLevel === 'eerie');
-      const canConfront = inCustomer && !this.windowOpen && cust.threatLevel === 'climax' && this.clues.length >= 5;
+      const canConfront = inCustomer && !this.windowOpen && cust.threatLevel === 'climax' && this.clues.length >= SECRET_CLUE_THRESHOLD;
 
       this.ui.syncGameplayHUD({
         night: this.night,
+        maxNights: MAX_NIGHTS,
         nightTitle: cfg.title,
+        toppingsUnlocked: Boolean(cfg.toppingsUnlocked),
         clockText: formatClock(this.clockFloat),
         targetClockText: formatClock(this.targetEndFloat),
         moneyText: formatRupiah(this.totalMoney),
+        sanity: Math.round(this.sanity),
+        freeCoffeeLeft: this.freeCoffeeLeft,
+        coffeeCostText: this.freeCoffeeLeft > 0 ? `Gratis (${this.freeCoffeeLeft})` : 'Rp 25k',
         strikes: this.strikes,
         maxStrikes: this.maxStrikes,
         clueCount: this.clues.length,
         muted: this.settings.muted,
         windowOpen: this.windowOpen,
+        deadboltLocked: this.deadboltLocked,
+        latchRattleActive: this.latchThreatTimer > 0,
+        cctvActive: this.cctvActive,
         inIntrusion,
         phoneRinging: this.phoneRinging,
         activePhone: inPhone,
@@ -1351,10 +1770,13 @@
         canConfront,
         canServe,
         cupScoops: this.cupScoops,
-        orderPriceText: cust && cust.order && cust.order.length > 0 ? formatRupiah(NS.Customers.calcOrderPrice(cust.order)) : '—'
+        cupTopping: this.cupTopping,
+        orderPriceText: cust && cust.order && cust.order.length > 0 ? formatRupiah(NS.Customers.calcOrderPrice(cust.order, cust.topping)) : '—'
       });
     }
   }
 
   NS.Game = NightShiftGame;
+  NS.MAX_NIGHTS = MAX_NIGHTS;
+  NS.SECRET_CLUE_THRESHOLD = SECRET_CLUE_THRESHOLD;
 })(window);

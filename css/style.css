@@ -2459,3 +2459,397 @@ button,
   }
 }
 
+/* ==========================================================================
+   V2.0.0 ADDITIONS — SANITY, DEADBOLT, CCTV, COFFEE, TOPPINGS & UPGRADE SHOP
+   ========================================================================== */
+
+/* Window Locked (Deadbolt) Badge State */
+.window-badge.locked {
+  color: #f4cb86;
+  border-color: rgba(217, 156, 74, 0.72);
+  background: rgba(42, 32, 13, 0.92);
+}
+
+.window-badge.locked .badge-indicator {
+  background: var(--amber-bright);
+  box-shadow: 0 0 8px var(--amber-bright);
+}
+
+/* Ketenangan (Sanity / Composure) Meter Pill */
+.hud-sanity {
+  gap: 7px;
+}
+
+.sanity-track {
+  width: 54px;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.sanity-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #569e76, #8cd4ac);
+  transition: width 200ms ease, background 220ms ease;
+}
+
+.hud-sanity.warn {
+  border-color: rgba(217, 156, 74, 0.65);
+}
+
+.hud-sanity.warn .sanity-fill {
+  background: linear-gradient(90deg, #c98632, #f0be73);
+}
+
+.hud-sanity.warn .meta-val {
+  color: var(--amber-bright);
+}
+
+.hud-sanity.critical {
+  border-color: rgba(207, 61, 52, 0.85);
+  background: rgba(68, 16, 16, 0.88);
+  animation: dangerPulse 0.7s ease-in-out infinite alternate;
+}
+
+.hud-sanity.critical .sanity-fill {
+  background: linear-gradient(90deg, #b82a23, #ff665c);
+}
+
+.hud-sanity.critical .meta-val {
+  color: #ff8a82;
+}
+
+/* Left Dock Tactical Mini-Row (CCTV & Deadbolt) + Coffee */
+.tactical-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.device-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 9px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-medium);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  color: var(--ink-primary);
+  font-family: var(--font-ui);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.device-mini:hover {
+  background: var(--bg-panel-hover);
+  border-color: var(--border-strong);
+}
+
+.device-mini.active-tactical {
+  border-color: var(--amber-bright);
+  background: rgba(45, 34, 15, 0.92);
+}
+
+.device-mini.urgent-rattle {
+  border-color: var(--crimson-bright);
+  background: rgba(74, 16, 16, 0.95);
+  animation: phoneVibrate 0.24s linear infinite;
+}
+
+.mini-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+
+.mini-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--ink-secondary);
+}
+
+.device-mini.active-tactical .mini-sub {
+  color: var(--amber-bright);
+}
+
+.device-coffee.low-sanity-hint {
+  border-color: var(--amber-bright);
+  box-shadow: var(--shadow-panel), 0 0 14px rgba(217, 156, 74, 0.35);
+}
+
+/* Order Slip Topping & Freezer Topping Row */
+.ticket-topping {
+  color: #6b3817;
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.cup-topping-chip {
+  background: rgba(168, 92, 28, 0.16);
+  border-color: rgba(168, 92, 28, 0.42);
+  color: #5c2e0e;
+}
+
+.topping-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.topping-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: var(--amber-lamp);
+}
+
+.topping-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.topping-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 4px;
+  background: rgba(24, 31, 32, 0.9);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--ink-secondary);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.topping-btn:hover:not(:disabled) {
+  border-color: var(--amber-lamp);
+  color: var(--ink-primary);
+}
+
+.topping-btn.selected {
+  background: rgba(182, 118, 42, 0.28);
+  border-color: var(--amber-bright);
+  color: var(--amber-bright);
+}
+
+.topping-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+/* Shift Summary Kiosk Upgrade Shop */
+.summary-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.shop-card {
+  padding: 10px 11px;
+  background: rgba(10, 15, 17, 0.88);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.shop-card.owned {
+  border-color: rgba(94, 158, 121, 0.45);
+  background: rgba(18, 32, 26, 0.65);
+}
+
+.shop-card-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.shop-name {
+  font-size: 12.5px;
+  color: var(--ink-primary);
+}
+
+.shop-price {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--amber-bright);
+  white-space: nowrap;
+}
+
+.shop-card.owned .shop-price {
+  color: #9ad8b3;
+}
+
+.shop-desc {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--ink-secondary);
+  flex: 1;
+}
+
+.btn-buy-upgrade {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 11.5px;
+}
+
+/* Compact Mobile Landscape Overrides for v2.0 Controls */
+@media (max-height: 560px) {
+  .hud-sanity .meta-key,
+  .sanity-track {
+    display: none;
+  }
+
+  .dock-left {
+    width: 152px;
+    gap: 4px;
+  }
+
+  .device-btn {
+    padding: 5px 8px;
+    gap: 6px;
+  }
+
+  .device-mini {
+    padding: 5px 7px;
+  }
+
+  .mini-title {
+    font-size: 10.5px;
+  }
+
+  .mini-sub {
+    font-size: 9.5px;
+  }
+
+  .topping-label {
+    display: none;
+  }
+
+  .topping-btn {
+    padding: 4px 3px;
+    font-size: 10px;
+  }
+
+  .shop-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .shop-card {
+    padding: 7px 8px;
+    gap: 3px;
+  }
+
+  .shop-desc {
+    font-size: 10.5px;
+  }
+}
+
+/* Single-line HUD integrity & no-scroll Shift Summary + Upgrade Shop on 1280x720 */
+.hud-top {
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.hud-group {
+  gap: 7px;
+  min-width: 0;
+}
+
+.hud-pill,
+.hud-clock-box,
+.window-badge,
+.btn-hud {
+  white-space: nowrap;
+}
+
+.hud-pill {
+  padding: 0 9px;
+  gap: 6px;
+}
+
+.shift-sub {
+  max-width: 135px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.window-badge {
+  padding: 0 11px;
+  font-size: 11.5px;
+}
+
+.topping-btn kbd {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  font-size: 9.5px;
+}
+
+.summary-card {
+  width: min(740px, 95vw);
+  padding: clamp(16px, 2.2vw, 22px) clamp(18px, 2.6vw, 26px);
+  gap: 11px;
+}
+
+.summary-title {
+  font-size: 23px;
+}
+
+.summary-stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.stat-box {
+  padding: 8px 11px;
+}
+
+.stat-value {
+  font-size: 16px;
+}
+
+.shop-card {
+  padding: 8px 10px;
+  gap: 4px;
+}
+
+.summary-note {
+  padding: 8px 12px;
+  font-size: 12.5px;
+}
+
+@media (max-width: 700px) {
+  .summary-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+
